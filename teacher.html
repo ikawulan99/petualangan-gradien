@@ -46,8 +46,7 @@ document.querySelectorAll('[data-st]').forEach(b=>b.onclick=async()=>{if(!code)r
 $('hon').onchange=()=>code&&updateDoc(doc(db,'classes',code),{hintsOn:$('hon').checked});
 $('bc').onclick=()=>{const t=$('bt').value.trim();if(code&&t){updateDoc(doc(db,'classes',code),{announce:{text:t,ts:Date.now()}});$('bt').value=''}};
 const pct=(a,b)=>b?Math.round(a/b*100)+'%':'-';
-const AR=['Coordinate Island','Equation City','Final Boss'];
-const rows=()=>P.map(p=>{const l2=p.lv2||0,l1=Math.min(p.lv||0,6),d1=p.done||l1>=6;return{n:p.name,on:Date.now()-p.last<45000,loc:p.done2||l2>=15?'Selesai':d1?'Tahap 2: '+AR[Math.floor(l2/5)]+' Soal '+(l2%5+1)+'/5':'Graph Mountain Lv '+Math.min(l1+1,6),pr:Math.round((l1+l2)/21*100)+'%',ls:pct(p.ok,p.ok+p.bad),tp1:pct(p.tp1ok,p.tp1ok+p.tp1bad),tp2:pct(p.tp2ok||0,(p.tp2ok||0)+(p.tp2bad||0)),ok:p.ok,bad:p.bad,h:p.hints,xp:p.xp,w:p.done2?Math.round(p.ms2/1000):p.done?Math.round(p.ms/1000):''}}).sort((a,b)=>a.n.localeCompare(b.n));
+const rows=()=>P.map(p=>{const l1=Math.min(p.lv||0,6),l2=Math.min(p.lv2||0,6),d1=p.done||l1>=6;return{n:p.name,on:Date.now()-p.last<45000,loc:p.done2||l2>=6?'Selesai':d1?'Coordinate Island Lv '+(l2+1):'Graph Mountain Lv '+Math.min(l1+1,6),pr:Math.round((l1+l2)/12*100)+'%',ls:pct(p.ok,p.ok+p.bad),tp1:pct(p.tp1ok,p.tp1ok+p.tp1bad),tp2:pct(p.tp2ok||0,(p.tp2ok||0)+(p.tp2bad||0)),ok:p.ok,bad:p.bad,h:p.hints,xp:p.xp,w:p.done2?Math.round(p.ms2/1000):p.done?Math.round(p.ms/1000):''}}).sort((a,b)=>a.n.localeCompare(b.n));
 function render(){const R=rows();$('sum').textContent=`Terdaftar: ${R.length} · Online: ${R.filter(r=>r.on).length}`;
  $('tb').innerHTML=R.map(r=>`<tr class="${r.on?'':'off'}"><td>${esc(r.n)}</td><td class="${r.on?'on':''}">${r.on?'Online':'Offline'}</td><td>${r.loc}</td><td>${r.pr}</td><td>${r.ls}</td><td>${r.tp1}</td><td>${r.tp2}</td><td>${r.ok}</td><td>${r.bad}</td><td>${r.h}</td><td>${r.xp}</td><td>${r.w}</td></tr>`).join('')}
 setInterval(()=>code&&render(),15000);

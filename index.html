@@ -26,6 +26,7 @@ button.s{background:var(--sec)}button.w{background:var(--warn);color:#222}
 #g{width:100%;max-width:min(360px,52vh);display:block;margin:8px auto;border:3px solid var(--ink);border-radius:8px;background:#fff}
 label{display:block;font-size:14px;font-weight:600}
 #fb,#hint{min-height:20px;font-size:14px;margin:6px 0}
+.pt{background:rgba(43,111,224,.12);border:2px solid var(--line);border-radius:12px;padding:10px;margin:6px 0;font-size:20px;font-weight:700;text-align:center}
 </style></head><body>
 <canvas id="c"></canvas>
 <div id="hud" hidden><div id="xp">XP 0</div><div id="ms">Misi</div></div>
@@ -39,7 +40,7 @@ label{display:block;font-size:14px;font-weight:600}
 <label>Nama pemain<input id="nm" placeholder="Nama kamu" autocomplete="off"></label>
 <label>Warna avatar</label><div class="sw" id="sw"></div>
 <div class="row"><button id="play">PLAY</button><button class="s" id="help">HELP</button></div>
-<p id="helptxt" hidden style="font-size:14px">Gerak: W/A/S/D atau panah (joystick di HP). Lompat: Spasi. Interaksi: E. Dekati papan kuning di jalur gunung, hitung rise dan run pada grid, lalu hitung gradiennya untuk membuka gerbang.</p>
+<p id="helptxt" hidden style="font-size:14px">Gerak: W/A/S/D atau panah (joystick di HP). Lompat: Spasi. Interaksi: E. Dekati papan kuning di jalur gunung, hitung rise dan run pada grid, lalu hitung gradiennya untuk membuka gerbang. Setelah Graph Mountain selesai, lanjutkan ke Coordinate Island.</p>
 </div></div>
 
 <div class="ov" id="q" hidden><div class="card">
@@ -53,10 +54,11 @@ label{display:block;font-size:14px;font-weight:600}
 </div></div>
 
 <div class="ov" id="q2" hidden><div class="card">
-<b id="q2t"></b>
-<p id="q2p" style="font-size:14px;margin:6px 0"></p>
-<canvas id="g2" width="360" height="360" style="width:100%;max-width:min(360px,40vh);display:block;margin:8px auto;border:3px solid var(--ink);border-radius:8px;background:#fff"></canvas><div id="hint2" style="min-height:20px;font-size:14px;margin:6px 0"></div>
-<label>Jawaban<input id="a4" autocomplete="off"></label>
+<div class="row"><b id="q2t"></b><button id="x2" class="s" aria-label="Tutup">✕</button></div>
+<p style="font-size:14px;margin:6px 0">Tentukan gradien garis yang melalui dua titik berikut.</p>
+<div class="pt" id="pa"></div><div class="pt" id="pb"></div>
+<div id="hint2" style="min-height:20px;font-size:14px;margin:6px 0"></div>
+<label>Gradien garis AB (pecahan atau desimal; jika gradien tidak ada, tulis: tidak terdefinisi)<input id="a4" autocomplete="off"></label>
 <div class="row"><button class="w" id="hb2">💡 Bantuan</button><button id="ok2">Periksa</button></div><div id="fb2" style="min-height:20px;font-size:14px;margin:6px 0"></div>
 </div></div>
 
@@ -65,7 +67,7 @@ label{display:block;font-size:14px;font-weight:600}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>
 const $=id=>document.getElementById(id),r=(a,b)=>a+Math.floor(Math.random()*(b-a+1));
-const S={color:'#2b6fe0',xp:0,ok:0,bad:0,lv:0,run:false,t0:0,hints:0,lv2:0};
+const S={color:'#2b6fe0',xp:0,ok:0,bad:0,lv:0,run:false,t0:0,hints:0,lv2:0,area:'gm'};
 const H=z=>Math.max(0,-z)*0.12;window.GA={status:'running',hintsOn:true,join:null,log(){},hint(){},done(){},done2(){},reset:async()=>{}};
 ['#2b6fe0','#7a4be0','#1fa35b','#f2b705','#d93a3a'].forEach((c,i)=>{const e=document.createElement('i');e.style.background=c;if(!i)e.className='on';e.onclick=()=>{S.color=c;document.querySelectorAll('#sw i').forEach(k=>k.className='');e.className='on'};$('sw').appendChild(e)});
 $('help').onclick=()=>$('helptxt').hidden=!$('helptxt').hidden;
@@ -86,6 +88,22 @@ const npc=mkAv(0x7a4be0,1);npc.position.set(4,0,-1);
 const L=[];for(let i=0;i<6;i++){const z=-12*i-8;box(.25,2,.25,0x555555,0,H(z)+1,z);const b=box(3,2,.3,0xf2b705,0,H(z)+2.6,z),g=box(7,3,.4,0xd93a3a,0,H(z-5)+1.5,z-5,null,.7);L.push({z,b,g,open:false})}
 const crystal=box(1.5,1.5,1.5,0x7a4be0,0,H(-86)+2,-86);crystal.rotation.set(.8,.8,0);
 let av=null;const p={x:0,z:4,y:0,vy:0};
+// ---------- Coordinate Island (Scene 4) ----------
+const OX=220,CB=[],CBD=[];let npc2,cry2;
+{const I=new THREE.Group();sc.add(I);
+const wt=new THREE.Mesh(new THREE.PlaneGeometry(500,500),M(0x2a9df4,.85));wt.rotation.x=-Math.PI/2;wt.position.set(OX,-5,-70);I.add(wt);
+const pyr=(x,z)=>{const m=new THREE.Mesh(new THREE.ConeGeometry(9.2,6,4),M(0x9a7b4f));m.rotation.set(Math.PI,Math.PI/4,0);m.position.set(x,-4,z);I.add(m)};
+const palm=(x,z)=>{box(.5,4,.5,0x8a5a2b,x,2,z,I);const l=new THREE.Mesh(new THREE.SphereGeometry(1.8,8,6),M(0x2fae5a));l.scale.y=.45;l.position.set(x,4.3,z);I.add(l);box(.5,.5,.5,0x5a3a1a,x+.5,3.7,z,I)};
+const mark=(x,z)=>{box(.3,1.2,.3,0xffffff,x,.6,z,I);const k=new THREE.Mesh(new THREE.SphereGeometry(.4,10,8),M(0xd93a3a));k.position.set(x,1.5,z);I.add(k)};
+for(let i=0;i<7;i++){const z=-i*24;box(13,1,14,0xf2d49b,OX,-.55,z,I);box(12,.1,13,0x7ed957,OX,0,z,I);pyr(OX,z);palm(OX-5,z+3);palm(OX+5,z-3);mark(OX+4.5,z+4.5);mark(OX-4.5,z-4.5);mark(OX-4,z+5);
+if(i<6){const bz=z-3.5;box(.25,2,.25,0x555555,OX,1,bz,I);CBD.push(box(3,2,.3,0xf2b705,OX,2.6,bz,I));
+const g=new THREE.Group();g.position.set(OX,0,z-7);for(let k=0;k<8;k++)box(2.6,.2,.9,0xcfa46a,0,-.1,-.6-k*1.25,g);box(.15,.8,10,0x8a5a2b,-1.4,.4,-5,g);box(.15,.8,10,0x8a5a2b,1.4,.4,-5,g);g.visible=false;I.add(g);
+CB.push({g,gate:box(3.6,3,.4,0xd93a3a,OX,1.5,z-7.2,I,.7),open:false,t:0})}}
+cry2=new THREE.Mesh(new THREE.OctahedronGeometry(1.3),M(0x19c3c3));cry2.position.set(OX,2.4,-144);I.add(cry2);
+npc2=mkAv(0xe08a00,1);npc2.position.set(OX+4,0,-1)}
+function openBridge(i,instant){const b=CB[i];b.open=true;b.g.visible=true;if(instant){b.t=1;b.g.scale.z=1;b.gate.visible=false}else{b.t=0;b.g.scale.z=.01}CBD[i].material.color.set(0x1fa35b)}
+function ciClamp(){p.z=Math.max(-S.lv2*24-6.1,Math.min(6.1,p.z));let pl=false;for(let i=0;i<=6;i++)if(Math.abs(p.z+i*24)<=7){pl=true;break}const w=pl?5.8:1.3;p.x=Math.max(OX-w,Math.min(OX+w,p.x))}
+
 function size(){R.setSize(innerWidth,innerHeight);cam.aspect=innerWidth/innerHeight;cam.updateProjectionMatrix()}addEventListener('resize',size);size();
 
 // ---------- kontrol ----------
@@ -97,22 +115,22 @@ const J=$('joy');function jv(e){const t=e.touches[0],b=J.getBoundingClientRect()
 J.addEventListener('touchstart',jv,{passive:false});J.addEventListener('touchmove',jv,{passive:false});J.addEventListener('touchend',()=>{joy.x=joy.y=0;$('knob').style.transform=''});
 $('jmp').onclick=()=>jump=true;$('act').onclick=()=>act();
 function say(t){const e=$('toast');e.textContent=t;e.hidden=false;clearTimeout(say.t);say.t=setTimeout(()=>e.hidden=true,6000)}
-function hud(){$('xp').textContent='XP '+S.xp;$('ms').textContent=S.lv<6?`Graph Mountain: jembatan ${S.lv+1}/6`:S.lv2<15?`Tahap 2: soal ${S.lv2+1}/15`:'Semua tahap selesai!'}
+function hud(){$('xp').textContent='XP '+S.xp;$('ms').textContent=S.lv<6?`Graph Mountain: jembatan ${S.lv+1}/6`:S.lv2<6?`Coordinate Island: jembatan ${S.lv2+1}/6`:'Coordinate Island selesai!'}
 $('play').onclick=async()=>{if($('code').value.trim().length<3||!$('nm').value.trim()){alert('Isi kode kelas (min. 3 karakter) dan nama pemain.');return}
 const jr=GA.join?await GA.join($('code').value.trim().toUpperCase().replace(/[^A-Z0-9-]/g,''),$('nm').value.trim(),S.color):{ok:true};if(!jr.ok){alert(jr.msg);return}S.name=$('nm').value.trim();S.run=true;S.t0=Date.now();av=mkAv(S.color);if(jr.r)resume(jr.r);$('intro').hidden=true;['hud','joy','btns'].forEach(i=>$(i).hidden=false);hud();
-say('Professor Gradient: “Selamat datang, '+S.name+'! Dunia ini kehilangan keseimbangan. Naiki jalur gunung dan perbaiki jembatan dengan gradien!”')};
-function act(){if(near=='b')openQ();else if(near=='n')say('Professor Gradient: “Dekati papan kuning, amati garisnya, hitung kotak naik/turun (rise) dan ke kanan (run). Gradien m = rise ÷ run.”')}
+say(S.area=='ci'?'Coordinate Explorer: “Selamat datang kembali, '+S.name+'! Lanjutkan memperbaiki jembatan antarpulau.”':'Professor Gradient: “Selamat datang, '+S.name+'! Dunia ini kehilangan keseimbangan. Naiki jalur gunung dan perbaiki jembatan dengan gradien!”')};
+function act(){if(near=='b')S.area=='ci'?openQ2():openQ();else if(near=='n'&&S.area=='ci')say('Coordinate Explorer: “Dekati papan kuning dan baca dua titik A dan B. Hitung selisih y (y₂ − y₁) dan selisih x (x₂ − x₁), lalu gradien m = selisih y ÷ selisih x.”');else if(near=='n')say('Professor Gradient: “Dekati papan kuning, amati garisnya, hitung kotak naik/turun (rise) dan ke kanan (run). Gradien m = rise ÷ run.”')}
 
 // ---------- loop ----------
 let last=0;function tick(t){requestAnimationFrame(tick);const dt=Math.min((t-last)/1000,.05);last=t;
 if(S.run&&!isOpen()){let ix=(keys.KeyD||keys.ArrowRight?1:0)-(keys.KeyA||keys.ArrowLeft?1:0)+joy.x,iz=(keys.KeyS||keys.ArrowDown?1:0)-(keys.KeyW||keys.ArrowUp?1:0)+joy.y;const m=Math.hypot(ix,iz);if(m>1){ix/=m;iz/=m}
-p.x=Math.max(p.z>1?-3:-10,Math.min(p.z>1?3:10,p.x+ix*7*dt));p.z=Math.max(S.lv<6?L[S.lv].z-5+.9:-95,Math.min(14,p.z+iz*7*dt));
+if(S.area=='ci'){p.x+=ix*7*dt;p.z+=iz*7*dt;ciClamp()}else{p.x=Math.max(p.z>1?-3:-10,Math.min(p.z>1?3:10,p.x+ix*7*dt));p.z=Math.max(S.lv<6?L[S.lv].z-5+.9:-95,Math.min(14,p.z+iz*7*dt))}
 if(jump&&p.y<=0){p.vy=8}jump=false;p.vy-=22*dt;p.y=Math.max(0,p.y+p.vy*dt);if(p.y==0&&p.vy<0)p.vy=0;
-if(m>.1)av.rotation.y=Math.atan2(ix,iz);av.position.set(p.x,H(p.z)+p.y,p.z);
-const bn=S.lv<6&&p.z-L[S.lv].z<5.5&&p.z>L[S.lv].z-3,nn=Math.hypot(p.x-npc.position.x,p.z-npc.position.z)<4;near=bn&&GA.status=='running'?'b':nn?'n':null;$('wait').hidden=GA.status=='running';$('wait').textContent={waiting:'Menunggu guru menekan START GAME…',paused:'Permainan dijeda guru',stopped:'Permainan dihentikan guru'}[GA.status]||'';
-$('act').hidden=!near;$('act').textContent=near=='b'?'Amati Grafik (E)':'Bicara (E)'}
-if(S.run){const g=H(p.z);cam.position.lerp(new THREE.Vector3(p.x*.5,g+7,p.z+11),.1);cam.lookAt(p.x,g+1.5,p.z-4)}else{cam.position.set(Math.sin(t/4000)*22,9,Math.cos(t/4000)*22+4);cam.lookAt(0,4,-12)}
-L.forEach(l=>{if(l.open&&l.g.visible){l.g.position.y-=dt*4;if(l.g.position.y<H(l.z-5)-3)l.g.visible=false}});crystal.rotation.y+=dt;npc.rotation.y=Math.sin(t/800)*.4;R.render(sc,cam)}requestAnimationFrame(tick);
+if(m>.1)av.rotation.y=Math.atan2(ix,iz);av.position.set(p.x,(S.area=='ci'?0:H(p.z))+p.y,p.z);
+let bn,nn;if(S.area=='ci'){bn=S.lv2<6&&Math.hypot(p.x-OX,p.z+S.lv2*24+3.5)<4;nn=Math.hypot(p.x-npc2.position.x,p.z-npc2.position.z)<4}else{bn=S.lv<6&&p.z-L[S.lv].z<5.5&&p.z>L[S.lv].z-3;nn=Math.hypot(p.x-npc.position.x,p.z-npc.position.z)<4}near=bn&&GA.status=='running'?'b':nn?'n':null;$('wait').hidden=GA.status=='running';$('wait').textContent={waiting:'Menunggu guru menekan START GAME…',paused:'Permainan dijeda guru',stopped:'Permainan dihentikan guru'}[GA.status]||'';
+$('act').hidden=!near;$('act').textContent=near=='b'?(S.area=='ci'?'Baca Soal (E)':'Amati Grafik (E)'):'Bicara (E)'}
+if(S.run){const ci=S.area=='ci',g=ci?0:H(p.z),cx=ci?OX+(p.x-OX)*.5:p.x*.5;cam.position.lerp(new THREE.Vector3(cx,g+7,p.z+11),.1);cam.lookAt(p.x,g+1.5,p.z-4)}else{cam.position.set(Math.sin(t/4000)*22,9,Math.cos(t/4000)*22+4);cam.lookAt(0,4,-12)}
+L.forEach(l=>{if(l.open&&l.g.visible){l.g.position.y-=dt*4;if(l.g.position.y<H(l.z-5)-3)l.g.visible=false}});CB.forEach(b=>{if(b.open){if(b.t<1){b.t=Math.min(1,b.t+dt*1.5);b.g.scale.z=Math.max(.01,b.t)}if(b.gate.visible){b.gate.position.y-=dt*4;if(b.gate.position.y<-3)b.gate.visible=false}}});cry2.rotation.y+=dt;crystal.rotation.y+=dt;npc.rotation.y=Math.sin(t/800)*.4;npc2.rotation.y=Math.sin(t/800)*.4;R.render(sc,cam)}requestAnimationFrame(tick);
 
 // ---------- soal Graph Mountain ----------
 const DIR=[[[1,1],[1,2],[1,3]],[[2,1],[3,2],[4,1],[4,3],[3,1],[2,3]],[[1,-1],[1,-2],[1,-3]],[[2,-1],[3,-2],[4,-3],[3,-1],[2,-3]],[[1,0]],[[0,3],[0,4],[0,5]]];
@@ -133,7 +151,7 @@ if(hs>=3){c.fillStyle='#e08a00';if(dx)c.fillText('RUN',X(Q.x+dx/2)-14,Y(Q.y)+(dy
 c.setLineDash([])}
 const HT=['','Garis bantu horizontal (ke kanan) ditampilkan.','Garis bantu vertikal (naik/turun) ditampilkan.','Label RISE dan RUN ditampilkan.','Rumus: m = rise ÷ run. Naik → positif, turun → negatif, datar → 0, tegak → tidak terdefinisi.','Contoh serupa: garis naik 2 kotak dan ke kanan 4 kotak → m = 2/4 = 1/2.'];
 $('hb').onclick=()=>{hintUsed=true;S.hints++;GA.hint();hs=Math.min(5,hs+1);$('hint').textContent=HT[hs];draw()};
-function num(s){s=String(s).trim().replace(',','.').replace(/\s/g,'');const m=s.match(/^(-?\d+(?:\.\d+)?)(?:\/(-?\d+(?:\.\d+)?))?$/);if(!m)return null;const v=m[2]===undefined?+m[1]:+m[1]/+m[2];return isFinite(v)?v:null}
+function num(s){s=String(s).trim().replace(/[−–]/g,'-').replace(',','.').replace(/\s/g,'');const m=s.match(/^(-?\d+(?:\.\d+)?)(?:\/(-?\d+(?:\.\d+)?))?$/);if(!m)return null;const v=m[2]===undefined?+m[1]:+m[1]/+m[2];return isFinite(v)?v:null}
 $('ok').onclick=()=>{const [dx,dy]=Q.d,rs=num($('a1').value),n=num($('a2').value),gs=$('a3').value.trim();
 const int=v=>v!==null&&Number.isInteger(v);
 const pair=dx==0?(int(rs)&&rs!==0&&n===0):(int(rs)&&int(n)&&n>0&&rs*dx===dy*n);
@@ -143,47 +161,56 @@ if(pair&&g){S.ok++;S.xp+=100;S.lv++;L[S.lv-1].open=true;L[S.lv-1].b.material.col
 fb.style.color='var(--ok)';fb.textContent=hintUsed?'Bagus! Kamu berhasil setelah menggunakan petunjuk. Cobalah latihan berikutnya tanpa bantuan. +250 XP':'Hebat! Kamu berhasil menentukan gradien dengan tepat. Jembatan berhasil diperbaiki! +250 XP';
 setTimeout(()=>{$('q').hidden=true;S.lv==6?win():say('Jembatan terbuka! Lanjutkan mendaki.')},1500)}
 else{S.bad++;fb.style.color='var(--bad)';fb.textContent=pair?'Rise dan run sudah tepat, tetapi gradien belum. Ingat m = rise ÷ run (tulis sebagai pecahan).':'Belum tepat. Perhatikan kembali perubahan vertikal dan horizontal pada garis.'}};
-function resume(r){S.xp=r.xp;S.ok=r.ok;S.bad=r.bad;S.lv=r.lv;S.hints=r.hints;S.lv2=r.lv2||0;for(let i=0;i<S.lv&&i<6;i++){L[i].open=true;L[i].g.visible=false;L[i].b.material.color.set(0x1fa35b)}if(S.lv>0)p.z=Math.min(14,L[Math.min(S.lv,5)].z+3);if(S.lv>=6)setTimeout(win,400)}
-function win(){const d2=S.lv2>=15;GA.done(Date.now()-S.t0);if(d2)GA.done2(Date.now()-S.t0);const t=Math.round((Date.now()-S.t0)/1000),tot=S.ok+S.bad,pc=Math.round(S.ok/tot*100);
+function resume(r){S.xp=r.xp;S.ok=r.ok;S.bad=r.bad;S.lv=r.lv;S.hints=r.hints;S.lv2=Math.min(r.lv2||0,6);for(let i=0;i<S.lv&&i<6;i++){L[i].open=true;L[i].g.visible=false;L[i].b.material.color.set(0x1fa35b)}if(S.lv>0)p.z=Math.min(14,L[Math.min(S.lv,5)].z+3);if(S.lv>=6){if(S.lv2>0&&S.lv2<6)enterCI();else setTimeout(win,400)}}
+function win(){const d2=S.lv2>=6;GA.done(Date.now()-S.t0);if(d2)GA.done2(Date.now()-S.t0);const t=Math.round((Date.now()-S.t0)/1000),tot=S.ok+S.bad,pc=Math.round(S.ok/tot*100);
 $('hallc').innerHTML=`<h1 style="font-size:24px">🏆 Hall of Gradient Masters</h1><p><b>${S.name}</b> — kelas ${$('code').value.trim()}</p>
 <p>XP: <b>${S.xp}</b><br>Jawaban benar: <b>${S.ok}</b> · salah: <b>${S.bad}</b><br>Learning Score (ketepatan): <b>${pc}%</b><br>Waktu: <b>${Math.floor(t/60)}m ${t%60}s</b> · Bantuan dipakai: <b>${S.hints}×</b></p>
-<p>Progres: ${d2?'Graph Mountain dan Tahap 2 selesai (100%)':'Graph Mountain 100%'}</p><p style="font-size:28px;margin:6px 0">${d2?'🏅 Graph Explorer 🧭 Gradient Master':'🏅 Graph Explorer'}</p>${d2?'<p style="font-size:13px">Semua tahap selesai. Jika HP ini akan dipinjam teman, tekan tombol di bawah agar ia bisa bermain dari awal. Hasilmu tetap tersimpan di dashboard guru.</p><button id="rs">Ganti Pemain / Reset</button>':'<p style="font-size:13px">Tahap 2: Coordinate Island, Equation City, dan Final Boss (masing-masing 5 soal).</p><button id="nx">Lanjut ke Tahap 2</button>'}`;$('hall').hidden=false;
-if(d2)$('rs').onclick=async()=>{if(confirm('Mulai sebagai pemain baru di HP ini? Hasil pemain ini tetap tersimpan.')){await GA.reset();location.reload()}};else $('nx').onclick=start2}
+<p>Progres: ${d2?'Graph Mountain dan Coordinate Island selesai (100%)':'Graph Mountain 100%'}</p><p style="font-size:28px;margin:6px 0">${d2?'🏅 Graph Explorer 🏝️ Coordinate Expert':'🏅 Graph Explorer'}</p>${d2?'<p style="font-size:13px">Dunia berikutnya akan segera hadir. Jika HP ini akan dipinjam teman, tekan tombol di bawah agar ia bisa bermain dari awal. Hasilmu tetap tersimpan di dashboard guru.</p><button id="rs">Ganti Pemain / Reset</button>':'<p style="font-size:13px">Selanjutnya: Coordinate Island. Kamu akan menentukan gradien dari dua titik yang diketahui koordinatnya.</p><button id="nx">Lanjut ke Coordinate Island</button>'}`;$('hall').hidden=false;
+if(d2)$('rs').onclick=async()=>{if(confirm('Mulai sebagai pemain baru di HP ini? Hasil pemain ini tetap tersimpan.')){await GA.reset();location.reload()}};else $('nx').onclick=enterCI}
 
-// ---------- Tahap 2 (3 area x 5 soal = 15 soal) ----------
-const AREA=[].concat(Array(5).fill('Coordinate Island'),Array(5).fill('Equation City'),Array(5).fill('Final Boss'));
-const HG='Gradien m = (y₂ − y₁) ÷ (x₂ − x₁). Hitung selisih y dan selisih x, lalu bagi.',HE='Ubah ke bentuk y = mx + c. Gradien adalah angka di depan x, dan c adalah nilai y saat x = 0.',HS='Substitusikan satu titik ke y = mx + c setelah m diketahui.';
-const HT2=[HG,HG+' Hati-hati dengan tanda negatif.',HG,HG+' Hati-hati dengan tanda negatif.',HG+' Garis datar tidak naik/turun, jadi selisih y = 0.',
-'Bagi kedua ruas dengan koefisien y, sehingga bentuknya y = mx + c. Gradien adalah angka di depan x.','Substitusikan nilai x ke y = mx + c, lalu hitung nilai y.','Titik potong sumbu-y terjadi saat x = 0, yaitu y = c.','Pindahkan suku x ke ruas kanan sehingga menjadi y = −(angka)x + ... Gradien adalah angka di depan x.','Substitusikan titik dan gradien ke y = mx + c, lalu cari c. (c = y − mx)',
-HG+' Lalu '+HS.toLowerCase(),HG+' Setelah m dan c ketemu, masukkan nilai x yang ditanyakan.','Cari m dan c dulu. Titik potong sumbu-x terjadi saat y = 0, sehingga 0 = mx + c.','Garis sejajar memiliki gradien yang sama. Gunakan y = mx + c dengan c dari titik potong sumbu-y.','Cari m, lalu c, kemudian jumlahkan m + c.'];
-let Q2=[],hu2=false;
-const nz=(a,b)=>{let v=0;while(!v)v=r(a,b);return v},sg=v=>v<0?'− '+(-v):'+ '+v;
-function gen2(){const pt=s=>{const dx=r(1,4),dy=s*r(1,4),x1=r(-6,6-dx),y1=dy>=0?r(-6,6-dy):r(-6-dy,6),q={x1,y1,x2:x1+dx,y2:y1+dy,pts:1,ans:dy/dx};q.txt=`Garis melalui titik A(${q.x1}, ${q.y1}) dan B(${q.x2}, ${q.y2}). Hitung gradiennya (tulis sebagai pecahan, mis. -3/4).`;return q};
-const ln=(m=nz(-3,3),c=nz(-5,5))=>{const xa=r(-3,-1),xb=xa+r(1,3),ya=m*xa+c,yb=m*xb+c;return{m,c,P:`A(${xa}, ${ya}) dan B(${xb}, ${yb})`}};
-const k=r(2,3),m1=nz(-4,4),c1=nz(-5,5),m2=nz(-3,3),c2=nz(-5,5),t2=r(1,4),m3=nz(-3,3),c3=nz(-5,5),a4=nz(-4,4),d4=r(-6,6),m5=nz(-3,3),x5=r(-3,3),y5=r(-6,6);
-const f1=ln(),f2=ln(),f3m=nz(-3,3),f3k=nz(-4,4),f3=ln(f3m,f3m*f3k),f4=ln(),f4c=nz(-5,5),f5=ln();
-return[pt(1),pt(-1),pt(1),pt(-1),pt(0),
-{txt:`Tentukan gradien garis ${k}y = ${m1*k}x ${sg(c1*k)}.`,ans:m1},
-{txt:`Sebuah garis memiliki persamaan y = ${m2}x ${sg(c2)}. Berapa nilai y jika x = ${t2}?`,ans:m2*t2+c2},
-{txt:`Garis y = ${m3}x ${sg(c3)} memotong sumbu-y di titik (0, ...). Tulis nilai y-nya.`,ans:c3},
-{txt:`Tentukan gradien garis ${a4}x + y = ${d4}.`,ans:-a4},
-{txt:`Sebuah garis bergradien ${m5} melalui titik (${x5}, ${y5}). Jika persamaannya y = mx + c, berapa nilai c?`,ans:y5-m5*x5},
-{txt:`Final Boss! Garis melalui ${f1.P}. Jika persamaannya y = mx + c, berapa nilai c?`,ans:f1.c},
-{txt:`Final Boss! Garis melalui ${f2.P}. Berapa nilai y pada garis itu saat x = ${t2}?`,ans:f2.m*t2+f2.c},
-{txt:`Final Boss! Garis melalui ${f3.P}. Pada nilai x berapa garis memotong sumbu-x (y = 0)?`,ans:-f3k},
-{txt:`Final Boss! Garis q sejajar dengan garis yang melalui ${f4.P}, dan q memotong sumbu-y di (0, ${f4c}). Berapa nilai y pada garis q saat x = ${t2}?`,ans:f4.m*t2+f4c},
-{txt:`Boss terakhir! Garis melalui ${f5.P}. Jika persamaannya y = mx + c, berapa nilai m + c?`,ans:f5.m+f5.c}]}
-function draw2(q){const c=$('g2').getContext('2d');c.fillStyle='#fff';c.fillRect(0,0,360,360);c.strokeStyle='#8aa4c8';c.lineWidth=1;
-for(let i=0;i<=12;i++){c.beginPath();c.moveTo(i*30,0);c.lineTo(i*30,360);c.moveTo(0,i*30);c.lineTo(360,i*30);c.stroke()}
-c.strokeStyle='#12305a';c.lineWidth=3;c.beginPath();c.moveTo(180,0);c.lineTo(180,360);c.moveTo(0,180);c.lineTo(360,180);c.stroke();
-c.strokeStyle='#7a4be0';c.lineWidth=4;c.beginPath();c.moveTo(X(q.x1),Y(q.y1));c.lineTo(X(q.x2),Y(q.y2));c.stroke();
-c.font='bold 16px sans-serif';[['A',q.x1,q.y1],['B',q.x2,q.y2]].forEach(([n,x,y])=>{c.fillStyle='#d93a3a';c.beginPath();c.arc(X(x),Y(y),6,0,7);c.fill();c.fillStyle='#12305a';c.fillText(n,X(x)+9,Y(y)-9)})}
-function show2(){const i=S.lv2,q=Q2[i];$('q2t').textContent=`${AREA[i]} · Soal ${i%5+1}/5`;$('q2p').textContent=q.txt;$('g2').hidden=!q.pts;if(q.pts)draw2(q);$('a4').value='';$('fb2').textContent='';$('hint2').textContent='';hu2=false;$('hb2').hidden=!GA.hintsOn;$('ok2').disabled=false;$('q2').hidden=false;hud()}
-function start2(){if(!Q2.length)Q2=gen2();$('hall').hidden=true;show2()}
-$('hb2').onclick=()=>{hu2=true;S.hints++;GA.hint();$('hint2').textContent=HT2[S.lv2]};
-$('ok2').onclick=()=>{const i=S.lv2,q=Q2[i],v=num($('a4').value),fb=$('fb2');
+// ---------- Coordinate Island: soal 6 level ----------
+const UND=/^((tidak|tak)\s*terdefinisi|undefined|tt)$/i,QC=[];let hu2=false,h2=0;
+const nz2=(a,b)=>{let v=0;while(!v)v=r(a,b);return v},t=v=>v<0?`(−${-v})`:`${v}`,gcd=(a,b)=>b?gcd(b,a%b):Math.abs(a);
+function fr(dy,dx){const g=gcd(dy,dx)||1;let n=dy/g,d=dx/g;if(d<0){n=-n;d=-d}return d==1?''+n:n+'/'+d}
+function genCI(lv){for(let k=0;k<3000;k++){let x1,y1,dx,dy;const kk=r(1,3);
+if(lv==0){x1=r(1,8);y1=r(1,8);dx=r(1,4);dy=kk*dx}
+else if(lv==1){x1=r(-8,8);y1=r(-8,8);dx=r(1,5);dy=kk*dx}
+else if(lv==2){x1=r(-9,-1);y1=r(-9,-1);dx=r(1,5);dy=kk*dx}
+else if(lv==3){x1=r(-8,8);y1=r(-8,8);dx=r(1,5);dy=-kk*dx}
+else if(lv==4){x1=r(-8,8);y1=r(-8,8);dx=[2,4,5][r(0,2)];dy=nz2(-9,9)}
+else{x1=r(-8,8);y1=r(-8,8);dx=0;dy=nz2(-7,7)}
+const x2=x1+dx,y2=y1+dy,c=[x1,y1,x2,y2];
+if(!c.every(v=>Math.abs(v)<=10))continue;
+if(lv==0&&!c.every(v=>v>0))continue;
+if(lv==1&&!(c.every(v=>v!==0)&&c.filter(v=>v<0).length==1))continue;
+if(lv==2&&!c.every(v=>v<0))continue;
+if(lv==4&&dy%dx==0)continue;
+return{x1,y1,x2,y2,dx,dy,und:dx==0,ans:dx?dy/dx:0}}
+return{x1:2,y1:3,x2:4,y2:7,dx:2,dy:4,und:false,ans:2}}
+const EX=[[1,2,3,8],[-2,1,1,4],[-6,-5,-3,-2],[1,6,3,2],[0,1,4,3],[3,1,3,5]];
+function hintsFor(q,lv){const [a,b,c,d]=EX[lv],dy=d-b,dx=c-a;return[
+'Rumus gradien dari dua titik: m = (y₂ − y₁) ÷ (x₂ − x₁).',
+`Tentukan nilainya dulu: x₁ = ${q.x1}, y₁ = ${q.y1}, x₂ = ${q.x2}, y₂ = ${q.y2}.`,
+`Langkah pengurangan: selisih y = y₂ − y₁ = ${t(q.y2)} − ${t(q.y1)}, dan selisih x = x₂ − x₁ = ${t(q.x2)} − ${t(q.x1)}. Hitung keduanya, lalu bagi selisih y dengan selisih x.${lv==5?' Ingat: pembagian dengan nol tidak terdefinisi.':''}`,
+`Latihan sejenis: A(${a}, ${b}) dan B(${c}, ${d}). m = (${t(d)} − ${t(b)}) ÷ (${t(c)} − ${t(a)}) = ${dy} ÷ ${dx} = ${dx?fr(dy,dx):'tidak terdefinisi (pembagi 0)'}.`]}
+function openQ2(){const i=S.lv2;if(!QC[i])QC[i]=genCI(i);const q=QC[i];$('q2t').textContent=`Coordinate Island · Level ${i+1}/6`;
+$('pa').textContent=`Titik A (x₁, y₁) = (${q.x1}, ${q.y1})`;$('pb').textContent=`Titik B (x₂, y₂) = (${q.x2}, ${q.y2})`;
+$('a4').value='';$('fb2').textContent='';$('hint2').textContent='';hu2=false;h2=0;$('hb2').hidden=!GA.hintsOn;$('ok2').disabled=false;$('q2').hidden=false}
+$('x2').onclick=()=>$('q2').hidden=true;
+$('hb2').onclick=()=>{hu2=true;S.hints++;GA.hint();h2=Math.min(4,h2+1);$('hint2').textContent=hintsFor(QC[S.lv2],S.lv2)[h2-1]};
+function enterCI(){S.area='ci';$('hall').hidden=true;p.x=OX;p.z=2-S.lv2*24;p.y=0;p.vy=0;for(let i=0;i<S.lv2;i++)openBridge(i,true);hud();
+say('Coordinate Explorer: “Selamat datang di Coordinate Island! Buka setiap jembatan dengan menghitung gradien dari dua titik.”')}
+$('ok2').onclick=()=>{const i=S.lv2,q=QC[i],raw=$('a4').value.trim(),v=num(raw),fb=$('fb2');
 if(GA.status!=='running'){fb.style.color='var(--bad)';fb.textContent='Permainan sedang tidak aktif.';return}
-const ok=v!==null&&Math.abs(v-q.ans)<1e-9;GA.log({tp:2,lv:i,ok,hint:hu2,a:[$('a4').value],xp:300});
-if(ok){$('ok2').disabled=true;S.ok++;S.xp+=300;S.lv2++;hud();fb.style.color='var(--ok)';fb.textContent=hu2?'Benar setelah memakai petunjuk! +300 XP':'Hebat, jawabanmu tepat! +300 XP';setTimeout(()=>{$('q2').hidden=true;S.lv2>=15?win():show2()},1200)}
-else{S.bad++;fb.style.color='var(--bad)';fb.textContent='Belum tepat. Hitung kembali, atau gunakan Bantuan.'}};
+if(!raw){fb.style.color='var(--bad)';fb.textContent='Isi jawabanmu dulu.';return}
+const ok=q.und?UND.test(raw):(v!==null&&Math.abs(v-q.ans)<1e-9);GA.log({tp:2,lv:i,ok,hint:hu2,a:[raw]});
+if(ok){$('ok2').disabled=true;S.ok++;S.xp+=250;S.lv2++;openBridge(i,false);hud();fb.style.color='var(--ok)';
+fb.textContent=hu2?'Bagus! Kamu berhasil setelah menggunakan petunjuk. Cobalah latihan berikutnya tanpa bantuan. +250 XP':'Hebat! Kamu berhasil menentukan gradien dengan tepat. Jembatan berhasil dibuka! +250 XP';
+setTimeout(()=>{$('q2').hidden=true;S.lv2>=6?win():say('Jembatan terbuka! Seberangi jembatan menuju pulau berikutnya.')},1500)}
+else{S.bad++;let m='Belum tepat. Hitung kembali selisih y dan selisih x, lalu bagi selisih y dengan selisih x.';
+if(q.und){if(v!==null)m='Perhatikan selisih x (x₂ − x₁). Apa yang terjadi jika pembaginya nol?'}
+else if(UND.test(raw))m='Selisih x tidak sama dengan nol, jadi gradiennya ada. Hitung kembali.';
+else if(v!==null&&q.ans!==0&&Math.abs(v+q.ans)<1e-9)m='Hampir! Nilainya benar tetapi tandanya terbalik. Periksa urutan pengurangan: y₂ − y₁ dan x₂ − x₁.';
+else if(v!==null&&q.dy!==0&&Math.abs(v-q.dx/q.dy)<1e-9)m='Gradien = selisih y ÷ selisih x, bukan sebaliknya.';
+fb.style.color='var(--bad)';fb.textContent=m}};
 </script><script type="module" src="firebase-game.js"></script></body></html>
