@@ -32,7 +32,7 @@ label{display:block;font-size:14px;font-weight:600}
 <div id="hud" hidden><div id="xp">XP 0</div><div id="ms">Misi</div></div>
 <div id="toast" hidden></div><div id="wait" hidden style="position:fixed;top:60px;left:50%;transform:translateX(-50%);background:var(--warn);color:#222;padding:8px 14px;border-radius:12px;font-weight:700;z-index:3;text-align:center"></div>
 <div id="joy" hidden><div id="knob"></div></div>
-<div id="btns" hidden><button id="act" class="s" hidden>Interaksi (E)</button><button id="jmp" class="w">Lompat</button></div>
+<div id="btns" hidden><button id="goci" hidden>Lanjut ke Coordinate Island ▶</button><button id="act" class="s" hidden>Interaksi (E)</button><button id="jmp" class="w">Lompat</button></div>
 
 <div class="ov" id="intro"><div class="card">
 <h1>GRADIENT ADVENTURE</h1><p class="tag">“Explore the World, Discover the Gradient!”</p>
@@ -70,6 +70,7 @@ const $=id=>document.getElementById(id),r=(a,b)=>a+Math.floor(Math.random()*(b-a
 const S={color:'#2b6fe0',xp:0,ok:0,bad:0,lv:0,run:false,t0:0,hints:0,lv2:0,area:'gm'};
 const H=z=>Math.max(0,-z)*0.12;window.GA={status:'running',hintsOn:true,join:null,log(){},hint(){},done(){},done2(){},reset:async()=>{}};
 ['#2b6fe0','#7a4be0','#1fa35b','#f2b705','#d93a3a'].forEach((c,i)=>{const e=document.createElement('i');e.style.background=c;if(!i)e.className='on';e.onclick=()=>{S.color=c;document.querySelectorAll('#sw i').forEach(k=>k.className='');e.className='on'};$('sw').appendChild(e)});
+addEventListener('error',e=>{try{say('⚠ Galat: '+e.message)}catch(_){}});
 $('help').onclick=()=>$('helptxt').hidden=!$('helptxt').hidden;
 
 // ---------- 3D dunia ----------
@@ -91,7 +92,7 @@ let av=null;const p={x:0,z:4,y:0,vy:0};
 // ---------- Coordinate Island (Scene 4) ----------
 const OX=220,CB=[],CBD=[];let npc2,cry2;
 {const I=new THREE.Group();sc.add(I);
-const wt=new THREE.Mesh(new THREE.PlaneGeometry(500,500),M(0x2a9df4,.85));wt.rotation.x=-Math.PI/2;wt.position.set(OX,-5,-70);I.add(wt);
+const wt=new THREE.Mesh(new THREE.PlaneGeometry(300,500),M(0x2a9df4,.85));wt.rotation.x=-Math.PI/2;wt.position.set(OX,-5,-70);I.add(wt);
 const pyr=(x,z)=>{const m=new THREE.Mesh(new THREE.ConeGeometry(9.2,6,4),M(0x9a7b4f));m.rotation.set(Math.PI,Math.PI/4,0);m.position.set(x,-4,z);I.add(m)};
 const palm=(x,z)=>{box(.5,4,.5,0x8a5a2b,x,2,z,I);const l=new THREE.Mesh(new THREE.SphereGeometry(1.8,8,6),M(0x2fae5a));l.scale.y=.45;l.position.set(x,4.3,z);I.add(l);box(.5,.5,.5,0x5a3a1a,x+.5,3.7,z,I)};
 const mark=(x,z)=>{box(.3,1.2,.3,0xffffff,x,.6,z,I);const k=new THREE.Mesh(new THREE.SphereGeometry(.4,10,8),M(0xd93a3a));k.position.set(x,1.5,z);I.add(k)};
@@ -113,7 +114,7 @@ addEventListener('keydown',e=>{if(!S.run||isOpen())return;keys[e.code]=1;if(e.co
 addEventListener('keyup',e=>{keys[e.code]=0});
 const J=$('joy');function jv(e){const t=e.touches[0],b=J.getBoundingClientRect();let x=(t.clientX-b.left-b.width/2)/(b.width/2),y=(t.clientY-b.top-b.height/2)/(b.height/2);const m=Math.hypot(x,y);if(m>1){x/=m;y/=m}joy.x=x;joy.y=y;$('knob').style.transform=`translate(${x*30}px,${y*30}px)`;e.preventDefault()}
 J.addEventListener('touchstart',jv,{passive:false});J.addEventListener('touchmove',jv,{passive:false});J.addEventListener('touchend',()=>{joy.x=joy.y=0;$('knob').style.transform=''});
-$('jmp').onclick=()=>jump=true;$('act').onclick=()=>act();
+$('jmp').onclick=()=>jump=true;$('act').onclick=()=>act();$('goci').onclick=()=>enterCI();
 function say(t){const e=$('toast');e.textContent=t;e.hidden=false;clearTimeout(say.t);say.t=setTimeout(()=>e.hidden=true,6000)}
 function hud(){$('xp').textContent='XP '+S.xp;$('ms').textContent=S.lv<6?`Graph Mountain: jembatan ${S.lv+1}/6`:S.lv2<6?`Coordinate Island: jembatan ${S.lv2+1}/6`:'Coordinate Island selesai!'}
 $('play').onclick=async()=>{if($('code').value.trim().length<3||!$('nm').value.trim()){alert('Isi kode kelas (min. 3 karakter) dan nama pemain.');return}
@@ -128,7 +129,7 @@ if(S.area=='ci'){p.x+=ix*7*dt;p.z+=iz*7*dt;ciClamp()}else{p.x=Math.max(p.z>1?-3:
 if(jump&&p.y<=0){p.vy=8}jump=false;p.vy-=22*dt;p.y=Math.max(0,p.y+p.vy*dt);if(p.y==0&&p.vy<0)p.vy=0;
 if(m>.1)av.rotation.y=Math.atan2(ix,iz);av.position.set(p.x,(S.area=='ci'?0:H(p.z))+p.y,p.z);
 let bn,nn;if(S.area=='ci'){bn=S.lv2<6&&Math.hypot(p.x-OX,p.z+S.lv2*24+3.5)<4;nn=Math.hypot(p.x-npc2.position.x,p.z-npc2.position.z)<4}else{bn=S.lv<6&&p.z-L[S.lv].z<5.5&&p.z>L[S.lv].z-3;nn=Math.hypot(p.x-npc.position.x,p.z-npc.position.z)<4}near=bn&&GA.status=='running'?'b':nn?'n':null;$('wait').hidden=GA.status=='running';$('wait').textContent={waiting:'Menunggu guru menekan START GAME…',paused:'Permainan dijeda guru',stopped:'Permainan dihentikan guru'}[GA.status]||'';
-$('act').hidden=!near;$('act').textContent=near=='b'?(S.area=='ci'?'Baca Soal (E)':'Amati Grafik (E)'):'Bicara (E)'}
+$('goci').hidden=!(S.area=='gm'&&S.lv>=6&&S.lv2<6&&$('hall').hidden);$('act').hidden=!near;$('act').textContent=near=='b'?(S.area=='ci'?'Baca Soal (E)':'Amati Grafik (E)'):'Bicara (E)'}
 if(S.run){const ci=S.area=='ci',g=ci?0:H(p.z),cx=ci?OX+(p.x-OX)*.5:p.x*.5;cam.position.lerp(new THREE.Vector3(cx,g+7,p.z+11),.1);cam.lookAt(p.x,g+1.5,p.z-4)}else{cam.position.set(Math.sin(t/4000)*22,9,Math.cos(t/4000)*22+4);cam.lookAt(0,4,-12)}
 L.forEach(l=>{if(l.open&&l.g.visible){l.g.position.y-=dt*4;if(l.g.position.y<H(l.z-5)-3)l.g.visible=false}});CB.forEach(b=>{if(b.open){if(b.t<1){b.t=Math.min(1,b.t+dt*1.5);b.g.scale.z=Math.max(.01,b.t)}if(b.gate.visible){b.gate.position.y-=dt*4;if(b.gate.position.y<-3)b.gate.visible=false}}});cry2.rotation.y+=dt;crystal.rotation.y+=dt;npc.rotation.y=Math.sin(t/800)*.4;npc2.rotation.y=Math.sin(t/800)*.4;R.render(sc,cam)}requestAnimationFrame(tick);
 
@@ -161,7 +162,7 @@ if(pair&&g){S.ok++;S.xp+=100;S.lv++;L[S.lv-1].open=true;L[S.lv-1].b.material.col
 fb.style.color='var(--ok)';fb.textContent=hintUsed?'Bagus! Kamu berhasil setelah menggunakan petunjuk. Cobalah latihan berikutnya tanpa bantuan. +250 XP':'Hebat! Kamu berhasil menentukan gradien dengan tepat. Jembatan berhasil diperbaiki! +250 XP';
 setTimeout(()=>{$('q').hidden=true;S.lv==6?win():say('Jembatan terbuka! Lanjutkan mendaki.')},1500)}
 else{S.bad++;fb.style.color='var(--bad)';fb.textContent=pair?'Rise dan run sudah tepat, tetapi gradien belum. Ingat m = rise ÷ run (tulis sebagai pecahan).':'Belum tepat. Perhatikan kembali perubahan vertikal dan horizontal pada garis.'}};
-function resume(r){S.xp=r.xp;S.ok=r.ok;S.bad=r.bad;S.lv=r.lv;S.hints=r.hints;S.lv2=Math.min(r.lv2||0,6);for(let i=0;i<S.lv&&i<6;i++){L[i].open=true;L[i].g.visible=false;L[i].b.material.color.set(0x1fa35b)}if(S.lv>0)p.z=Math.min(14,L[Math.min(S.lv,5)].z+3);if(S.lv>=6){if(S.lv2>0&&S.lv2<6)enterCI();else setTimeout(win,400)}}
+function resume(r){S.xp=r.xp;S.ok=r.ok;S.bad=r.bad;S.lv=r.lv;S.hints=r.hints;S.lv2=Math.min(r.lv2||0,6);for(let i=0;i<S.lv&&i<6;i++){L[i].open=true;L[i].g.visible=false;L[i].b.material.color.set(0x1fa35b)}if(S.lv>0)p.z=Math.min(14,L[Math.min(S.lv,5)].z+3);if(S.lv>=6){if(S.lv2>=6)setTimeout(win,400);else enterCI()}}
 function win(){const d2=S.lv2>=6;GA.done(Date.now()-S.t0);if(d2)GA.done2(Date.now()-S.t0);const t=Math.round((Date.now()-S.t0)/1000),tot=S.ok+S.bad,pc=Math.round(S.ok/tot*100);
 $('hallc').innerHTML=`<h1 style="font-size:24px">🏆 Hall of Gradient Masters</h1><p><b>${S.name}</b> — kelas ${$('code').value.trim()}</p>
 <p>XP: <b>${S.xp}</b><br>Jawaban benar: <b>${S.ok}</b> · salah: <b>${S.bad}</b><br>Learning Score (ketepatan): <b>${pc}%</b><br>Waktu: <b>${Math.floor(t/60)}m ${t%60}s</b> · Bantuan dipakai: <b>${S.hints}×</b></p>
