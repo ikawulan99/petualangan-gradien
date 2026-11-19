@@ -1,0 +1,22 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{db}/documents {
+    function teacher() { return request.auth != null && request.auth.token.firebase.sign_in_provider == 'password'; }
+    function owner(code) { return teacher() && get(/databases/$(db)/documents/classes/$(code)).data.teacherUid == request.auth.uid; }
+    match /classes/{code} {
+      allow get: if request.auth != null;
+      allow list: if teacher() && resource.data.teacherUid == request.auth.uid;
+      allow create: if teacher() && request.resource.data.teacherUid == request.auth.uid;
+      allow update, delete: if owner(code);
+      match /players/{uid} {
+        allow read: if request.auth != null && (request.auth.uid == uid || owner(code));
+        allow create, update: if request.auth != null && request.auth.uid == uid;
+        allow delete: if owner(code);
+        match /attempts/{id} {
+          allow create: if request.auth != null && request.auth.uid == uid;
+          allow read: if owner(code);
+        }
+      }
+    }
+  }
+}

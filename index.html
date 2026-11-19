@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="id"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Gradient Adventure</title>
+<style>
+:root{--card:#fff;--ink:#12305a;--pri:#2b6fe0;--sec:#7a4be0;--ok:#1fa35b;--warn:#f2b705;--bad:#d93a3a;--line:#b9cdee;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--card:#16243d;--ink:#e8f0ff;--line:#35507e}}
+*{box-sizing:border-box}html,body{height:100%;margin:0;font-family:system-ui,sans-serif;background:#9fd4ff;overflow:hidden;color:var(--ink)}
+canvas#c{position:fixed;inset:0;width:100%;height:100%;display:block}
+[hidden]{display:none!important}
+.ov{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(10,30,70,.5);padding:12px;overflow:auto;z-index:5}
+.card{background:var(--card);border-radius:16px;padding:16px;width:100%;max-width:420px;box-shadow:0 8px 30px rgba(0,0,0,.3)}
+h1{margin:0;color:var(--sec);font-size:28px}.tag{margin:2px 0 12px;font-style:italic}
+input{width:100%;font-size:16px;padding:10px;margin:4px 0 8px;border:2px solid var(--line);border-radius:10px;background:transparent;color:var(--ink)}
+button{font-size:16px;min-height:44px;padding:8px 16px;border:0;border-radius:12px;background:var(--pri);color:#fff;font-weight:700;cursor:pointer}
+button.s{background:var(--sec)}button.w{background:var(--warn);color:#222}
+.row{display:flex;gap:8px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.sw{display:flex;gap:8px;margin:6px 0 12px}.sw i{width:36px;height:36px;border-radius:50%;border:3px solid transparent;cursor:pointer}.sw i.on{border-color:var(--ink)}
+#hud{position:fixed;top:env(safe-area-inset-top,0px);left:0;right:0;display:flex;justify-content:space-between;gap:8px;padding:8px;z-index:3;pointer-events:none}
+#hud div{background:var(--card);padding:6px 12px;border-radius:12px;font-weight:700;font-size:14px}
+#toast{position:fixed;left:50%;bottom:150px;transform:translateX(-50%);background:var(--card);padding:10px 14px;border-radius:12px;max-width:90vw;z-index:3;text-align:center}
+#joy{position:fixed;left:18px;bottom:calc(24px + env(safe-area-inset-bottom,0px));width:110px;height:110px;border-radius:50%;background:rgba(255,255,255,.35);border:3px solid rgba(255,255,255,.7);touch-action:none;z-index:3;display:flex;align-items:center;justify-content:center}
+#knob{width:46px;height:46px;border-radius:50%;background:var(--pri)}
+#btns{position:fixed;right:18px;bottom:calc(24px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:10px;z-index:3}
+#btns button{min-width:120px;min-height:52px}
+#g{width:100%;max-width:min(360px,52vh);display:block;margin:8px auto;border:3px solid var(--ink);border-radius:8px;background:#fff}
+label{display:block;font-size:14px;font-weight:600}
+#fb,#hint{min-height:20px;font-size:14px;margin:6px 0}
+</style></head><body>
+<canvas id="c"></canvas>
+<div id="hud" hidden><div id="xp">XP 0</div><div id="ms">Misi</div></div>
+<div id="toast" hidden></div><div id="wait" hidden style="position:fixed;top:60px;left:50%;transform:translateX(-50%);background:var(--warn);color:#222;padding:8px 14px;border-radius:12px;font-weight:700;z-index:3;text-align:center"></div>
+<div id="joy" hidden><div id="knob"></div></div>
+<div id="btns" hidden><button id="act" class="s" hidden>Interaksi (E)</button><button id="jmp" class="w">Lompat</button></div>
+
+<div class="ov" id="intro"><div class="card">
+<h1>GRADIENT ADVENTURE</h1><p class="tag">“Explore the World, Discover the Gradient!”</p>
+<label>Kode kelas<input id="code" placeholder="mis. 9A-2026" autocomplete="off"></label>
+<label>Nama pemain<input id="nm" placeholder="Nama kamu" autocomplete="off"></label>
+<label>Warna avatar</label><div class="sw" id="sw"></div>
+<div class="row"><button id="play">PLAY</button><button class="s" id="help">HELP</button></div>
+<p id="helptxt" hidden style="font-size:14px">Gerak: W/A/S/D atau panah (joystick di HP). Lompat: Spasi. Interaksi: E. Dekati papan kuning di jalur gunung, hitung rise dan run pada grid, lalu hitung gradiennya untuk membuka gerbang.</p>
+</div></div>
+
+<div class="ov" id="q" hidden><div class="card">
+<div class="row"><b id="qt"></b><button id="x" class="s" aria-label="Tutup">✕</button></div>
+<p style="font-size:14px;margin:6px 0">Amati kemiringan garis. Berapa satuan garis bergerak naik atau turun, dan berapa satuan bergerak ke kanan?</p>
+<canvas id="g" width="360" height="360"></canvas><div id="hint"></div>
+<label>1. Perubahan vertikal (rise; turun = negatif)<input id="a1" autocomplete="off"></label>
+<label>2. Perubahan horizontal ke kanan (run)<input id="a2" autocomplete="off"></label>
+<label>3. Gradien (pecahan, mis. -3/4)<input id="a3" autocomplete="off"></label>
+<div class="row"><button class="w" id="hb">💡 Bantuan</button><button id="ok">Periksa</button></div><div id="fb"></div>
+</div></div>
+
+<div class="ov" id="hall" hidden><div class="card" id="hallc"></div></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+const $=id=>document.getElementById(id),r=(a,b)=>a+Math.floor(Math.random()*(b-a+1));
+const S={color:'#2b6fe0',xp:0,ok:0,bad:0,lv:0,run:false,t0:0,hints:0};
+const H=z=>Math.max(0,-z)*0.12;window.GA={status:'running',hintsOn:true,join:null,log(){},hint(){},done(){}};
+['#2b6fe0','#7a4be0','#1fa35b','#f2b705','#d93a3a'].forEach((c,i)=>{const e=document.createElement('i');e.style.background=c;if(!i)e.className='on';e.onclick=()=>{S.color=c;document.querySelectorAll('#sw i').forEach(k=>k.className='');e.className='on'};$('sw').appendChild(e)});
+$('help').onclick=()=>$('helptxt').hidden=!$('helptxt').hidden;
+
+// ---------- 3D dunia ----------
+const R=new THREE.WebGLRenderer({antialias:true,canvas:$('c')});R.setPixelRatio(Math.min(devicePixelRatio,2));
+const sc=new THREE.Scene();sc.background=new THREE.Color(0x9fd4ff);sc.fog=new THREE.Fog(0x9fd4ff,35,130);
+const cam=new THREE.PerspectiveCamera(60,1,.1,250);
+sc.add(new THREE.HemisphereLight(0xffffff,0x668866,1));const dl=new THREE.DirectionalLight(0xffffff,.8);dl.position.set(10,20,10);sc.add(dl);
+const M=(c,o)=>new THREE.MeshLambertMaterial({color:c,transparent:!!o,opacity:o||1});
+function box(w,h,d,c,x,y,z,p,o){const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),M(c,o));m.position.set(x,y,z);(p||sc).add(m);return m}
+box(26,1,26,0x7ed957,0,-.5,4);
+const rd=box(7,.6,101,0xcfa46a,0,H(-50)-.3,-50);rd.rotation.x=Math.atan(.12);
+for(let i=0;i<10;i++){const s=i%2?-1:1,rad=r(7,11),h=r(14,24),m=new THREE.Mesh(new THREE.ConeGeometry(rad,h,6),M(i%3?0x7a8fa6:0x5fae6b));m.position.set(s*(16+rad),h/2-2,-i*11+2);sc.add(m)}
+for(let i=0;i<5;i++){const m=new THREE.Mesh(new THREE.CylinderGeometry(6,3,3,7),M(0x9be07a));m.position.set(i%2?-34:34,r(8,16),-i*20-5);sc.add(m)}
+function mkAv(col,hat){const g=new THREE.Group();box(.8,1,.5,col,0,1.1,0,g);box(.6,.6,.6,0xffd9a8,0,1.9,0,g);box(.3,.8,.3,0x334466,-.2,.4,0,g);box(.3,.8,.3,0x334466,.2,.4,0,g);if(hat)box(.8,.25,.8,0x222244,0,2.3,0,g);sc.add(g);return g}
+const npc=mkAv(0x7a4be0,1);npc.position.set(4,0,-1);
+const L=[];for(let i=0;i<6;i++){const z=-12*i-8;box(.25,2,.25,0x555555,0,H(z)+1,z);const b=box(3,2,.3,0xf2b705,0,H(z)+2.6,z),g=box(7,3,.4,0xd93a3a,0,H(z-5)+1.5,z-5,null,.7);L.push({z,b,g,open:false})}
+const crystal=box(1.5,1.5,1.5,0x7a4be0,0,H(-86)+2,-86);crystal.rotation.set(.8,.8,0);
+let av=null;const p={x:0,z:4,y:0,vy:0};
+function size(){R.setSize(innerWidth,innerHeight);cam.aspect=innerWidth/innerHeight;cam.updateProjectionMatrix()}addEventListener('resize',size);size();
+
+// ---------- kontrol ----------
+const keys={},joy={x:0,y:0};let near=null,jump=false;
+const isOpen=()=>!$('q').hidden||!$('hall').hidden;
+addEventListener('keydown',e=>{if(!S.run||isOpen())return;keys[e.code]=1;if(e.code=='Space'){jump=true;e.preventDefault()}if(e.code=='KeyE')act();if(e.code.startsWith('Arrow'))e.preventDefault()});
+addEventListener('keyup',e=>{keys[e.code]=0});
+const J=$('joy');function jv(e){const t=e.touches[0],b=J.getBoundingClientRect();let x=(t.clientX-b.left-b.width/2)/(b.width/2),y=(t.clientY-b.top-b.height/2)/(b.height/2);const m=Math.hypot(x,y);if(m>1){x/=m;y/=m}joy.x=x;joy.y=y;$('knob').style.transform=`translate(${x*30}px,${y*30}px)`;e.preventDefault()}
+J.addEventListener('touchstart',jv,{passive:false});J.addEventListener('touchmove',jv,{passive:false});J.addEventListener('touchend',()=>{joy.x=joy.y=0;$('knob').style.transform=''});
+$('jmp').onclick=()=>jump=true;$('act').onclick=()=>act();
+function say(t){const e=$('toast');e.textContent=t;e.hidden=false;clearTimeout(say.t);say.t=setTimeout(()=>e.hidden=true,6000)}
+function hud(){$('xp').textContent='XP '+S.xp;$('ms').textContent=S.lv<6?`Graph Mountain: jembatan ${S.lv+1}/6`:'Puncak tercapai!'}
+$('play').onclick=async()=>{if($('code').value.trim().length<3||!$('nm').value.trim()){alert('Isi kode kelas (min. 3 karakter) dan nama pemain.');return}
+const jr=GA.join?await GA.join($('code').value.trim().toUpperCase().replace(/[^A-Z0-9-]/g,''),$('nm').value.trim(),S.color):{ok:true};if(!jr.ok){alert(jr.msg);return}S.name=$('nm').value.trim();S.run=true;S.t0=Date.now();av=mkAv(S.color);if(jr.r)resume(jr.r);$('intro').hidden=true;['hud','joy','btns'].forEach(i=>$(i).hidden=false);hud();
+say('Professor Gradient: “Selamat datang, '+S.name+'! Dunia ini kehilangan keseimbangan. Naiki jalur gunung dan perbaiki jembatan dengan gradien!”')};
+function act(){if(near=='b')openQ();else if(near=='n')say('Professor Gradient: “Dekati papan kuning, amati garisnya, hitung kotak naik/turun (rise) dan ke kanan (run). Gradien m = rise ÷ run.”')}
+
+// ---------- loop ----------
+let last=0;function tick(t){requestAnimationFrame(tick);const dt=Math.min((t-last)/1000,.05);last=t;
+if(S.run&&!isOpen()){let ix=(keys.KeyD||keys.ArrowRight?1:0)-(keys.KeyA||keys.ArrowLeft?1:0)+joy.x,iz=(keys.KeyS||keys.ArrowDown?1:0)-(keys.KeyW||keys.ArrowUp?1:0)+joy.y;const m=Math.hypot(ix,iz);if(m>1){ix/=m;iz/=m}
+p.x=Math.max(p.z>1?-3:-10,Math.min(p.z>1?3:10,p.x+ix*7*dt));p.z=Math.max(S.lv<6?L[S.lv].z-5+.9:-95,Math.min(14,p.z+iz*7*dt));
+if(jump&&p.y<=0){p.vy=8}jump=false;p.vy-=22*dt;p.y=Math.max(0,p.y+p.vy*dt);if(p.y==0&&p.vy<0)p.vy=0;
+if(m>.1)av.rotation.y=Math.atan2(ix,iz);av.position.set(p.x,H(p.z)+p.y,p.z);
+const bn=S.lv<6&&p.z-L[S.lv].z<5.5&&p.z>L[S.lv].z-3,nn=Math.hypot(p.x-npc.position.x,p.z-npc.position.z)<4;near=bn&&GA.status=='running'?'b':nn?'n':null;$('wait').hidden=GA.status=='running';$('wait').textContent={waiting:'Menunggu guru menekan START GAME…',paused:'Permainan dijeda guru',stopped:'Permainan dihentikan guru'}[GA.status]||'';
+$('act').hidden=!near;$('act').textContent=near=='b'?'Amati Grafik (E)':'Bicara (E)'}
+if(S.run){const g=H(p.z);cam.position.lerp(new THREE.Vector3(p.x*.5,g+7,p.z+11),.1);cam.lookAt(p.x,g+1.5,p.z-4)}else{cam.position.set(Math.sin(t/4000)*22,9,Math.cos(t/4000)*22+4);cam.lookAt(0,4,-12)}
+L.forEach(l=>{if(l.open&&l.g.visible){l.g.position.y-=dt*4;if(l.g.position.y<H(l.z-5)-3)l.g.visible=false}});crystal.rotation.y+=dt;npc.rotation.y=Math.sin(t/800)*.4;R.render(sc,cam)}requestAnimationFrame(tick);
+
+// ---------- soal Graph Mountain ----------
+const DIR=[[[1,1],[1,2],[1,3]],[[2,1],[3,2],[4,1],[4,3],[3,1],[2,3]],[[1,-1],[1,-2],[1,-3]],[[2,-1],[3,-2],[4,-3],[3,-1],[2,-3]],[[1,0]],[[0,3],[0,4],[0,5]]];
+let Q=null,hs=0,hintUsed=false;
+function gen(lv){const d=DIR[lv][r(0,DIR[lv].length-1)],[dx,dy]=d;let x,y;if(dx==0){x=r(-4,4);y=r(-6,6-dy)}else{x=r(-6,6-dx);y=dy>=0?r(-6,6-dy):r(-6-dy,6)}return{x,y,d}}
+function openQ(){Q=gen(S.lv);hs=0;hintUsed=false;$('qt').textContent=`Graph Mountain · Level ${S.lv+1}`;['a1','a2','a3'].forEach(i=>$(i).value='');$('fb').textContent='';$('hint').textContent='';$('q').hidden=false;$('hb').hidden=!GA.hintsOn;draw()}
+$('x').onclick=()=>$('q').hidden=true;
+const X=v=>180+v*30,Y=v=>180-v*30;
+function draw(){const c=$('g').getContext('2d'),[dx,dy]=Q.d;c.fillStyle='#fff';c.fillRect(0,0,360,360);c.strokeStyle='#8aa4c8';c.lineWidth=1;
+for(let i=0;i<=12;i++){c.beginPath();c.moveTo(i*30,0);c.lineTo(i*30,360);c.moveTo(0,i*30);c.lineTo(360,i*30);c.stroke()}
+c.strokeStyle='#12305a';c.lineWidth=3;c.beginPath();c.moveTo(180,0);c.lineTo(180,360);c.moveTo(0,180);c.lineTo(360,180);c.stroke();
+let lo=-1e9,hi=1e9;[[Q.x,dx],[Q.y,dy]].forEach(([q,v])=>{if(v){const a=(-6-q)/v,b=(6-q)/v;lo=Math.max(lo,Math.min(a,b));hi=Math.min(hi,Math.max(a,b))}});
+c.strokeStyle='#7a4be0';c.lineWidth=5;c.lineCap='round';c.beginPath();c.moveTo(X(Q.x+lo*dx),Y(Q.y+lo*dy));c.lineTo(X(Q.x+hi*dx),Y(Q.y+hi*dy));c.stroke();
+c.setLineDash([8,6]);c.lineWidth=4;c.font='bold 16px sans-serif';
+if(hs>=1){c.strokeStyle='#e08a00';c.beginPath();c.moveTo(X(Q.x),Y(Q.y));c.lineTo(X(Q.x+dx),Y(Q.y));c.stroke()}
+if(hs>=2){c.strokeStyle='#1fa35b';c.beginPath();c.moveTo(X(Q.x+dx),Y(Q.y));c.lineTo(X(Q.x+dx),Y(Q.y+dy));c.stroke()}
+if(hs>=3){c.fillStyle='#e08a00';if(dx)c.fillText('RUN',X(Q.x+dx/2)-14,Y(Q.y)+(dy>=0?20:-8));c.fillStyle='#1fa35b';if(dy)c.fillText('RISE',X(Q.x+dx)+8,Y(Q.y+dy/2))}
+c.setLineDash([])}
+const HT=['','Garis bantu horizontal (ke kanan) ditampilkan.','Garis bantu vertikal (naik/turun) ditampilkan.','Label RISE dan RUN ditampilkan.','Rumus: m = rise ÷ run. Naik → positif, turun → negatif, datar → 0, tegak → tidak terdefinisi.','Contoh serupa: garis naik 2 kotak dan ke kanan 4 kotak → m = 2/4 = 1/2.'];
+$('hb').onclick=()=>{hintUsed=true;S.hints++;GA.hint();hs=Math.min(5,hs+1);$('hint').textContent=HT[hs];draw()};
+function num(s){s=String(s).trim().replace(',','.').replace(/\s/g,'');const m=s.match(/^(-?\d+(?:\.\d+)?)(?:\/(-?\d+(?:\.\d+)?))?$/);if(!m)return null;const v=m[2]===undefined?+m[1]:+m[1]/+m[2];return isFinite(v)?v:null}
+$('ok').onclick=()=>{const [dx,dy]=Q.d,rs=num($('a1').value),n=num($('a2').value),gs=$('a3').value.trim();
+const int=v=>v!==null&&Number.isInteger(v);
+const pair=dx==0?(int(rs)&&rs!==0&&n===0):(int(rs)&&int(n)&&n>0&&rs*dx===dy*n);
+const g=dx==0?/^((tidak|tak)\s*terdefinisi|undefined|tt)$/i.test(gs):(num(gs)!==null&&Math.abs(num(gs)-dy/dx)<1e-9);
+const fb=$('fb');if(GA.status!=='running'){fb.style.color='var(--bad)';fb.textContent='Permainan sedang tidak aktif.';return}GA.log({lv:S.lv,ok:!!(pair&&g),hint:hintUsed,a:[$('a1').value,$('a2').value,gs]});
+if(pair&&g){S.ok++;S.xp+=100;S.lv++;L[S.lv-1].open=true;L[S.lv-1].b.material.color.set(0x1fa35b);S.xp+=150;hud();
+fb.style.color='var(--ok)';fb.textContent=hintUsed?'Bagus! Kamu berhasil setelah menggunakan petunjuk. Cobalah latihan berikutnya tanpa bantuan. +250 XP':'Hebat! Kamu berhasil menentukan gradien dengan tepat. Jembatan berhasil diperbaiki! +250 XP';
+setTimeout(()=>{$('q').hidden=true;S.lv==6?win():say('Jembatan terbuka! Lanjutkan mendaki.')},1500)}
+else{S.bad++;fb.style.color='var(--bad)';fb.textContent=pair?'Rise dan run sudah tepat, tetapi gradien belum. Ingat m = rise ÷ run (tulis sebagai pecahan).':'Belum tepat. Perhatikan kembali perubahan vertikal dan horizontal pada garis.'}};
+function resume(r){S.xp=r.xp;S.ok=r.ok;S.bad=r.bad;S.lv=r.lv;S.hints=r.hints;for(let i=0;i<S.lv&&i<6;i++){L[i].open=true;L[i].g.visible=false;L[i].b.material.color.set(0x1fa35b)}if(S.lv>0)p.z=Math.min(14,L[Math.min(S.lv,5)].z+3);if(S.lv>=6)setTimeout(win,400)}
+function win(){GA.done(Date.now()-S.t0);const t=Math.round((Date.now()-S.t0)/1000),tot=S.ok+S.bad,pc=Math.round(S.ok/tot*100);
+$('hallc').innerHTML=`<h1 style="font-size:24px">🏆 Hall of Gradient Masters</h1><p><b>${S.name}</b> — kelas ${$('code').value.trim()}</p>
+<p>XP: <b>${S.xp}</b><br>Jawaban benar: <b>${S.ok}</b> · salah: <b>${S.bad}</b><br>Learning Score (ketepatan): <b>${pc}%</b><br>Waktu: <b>${Math.floor(t/60)}m ${t%60}s</b> · Bantuan dipakai: <b>${S.hints}×</b></p>
+<p>Progres: Graph Mountain 100%</p><p style="font-size:28px;margin:6px 0">🏅 Graph Explorer</p><p style="font-size:13px">Coordinate Island, Equation City, dan Final Boss tersedia di Tahap 2.</p><button onclick="location.reload()">Main Lagi</button>`;$('hall').hidden=false}
+</script><script type="module" src="firebase-game.js"></script></body></html>

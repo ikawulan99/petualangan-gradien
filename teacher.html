@@ -1,0 +1,58 @@
+<!DOCTYPE html><html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Teacher Dashboard – Gradient Adventure</title>
+<style>
+:root{--bg:#eef5ff;--card:#fff;--ink:#12305a;--pri:#2b6fe0;--line:#c9d8f0}
+@media(prefers-color-scheme:dark){:root{--bg:#0e1a2e;--card:#16243d;--ink:#e8f0ff;--line:#35507e}}
+body{margin:0;font-family:system-ui,sans-serif;background:var(--bg);color:var(--ink);padding:12px}
+.card{background:var(--card);border-radius:14px;padding:14px;margin:0 auto 12px;max-width:1000px}
+input,select,button{font-size:15px;padding:9px;border-radius:9px;border:2px solid var(--line);background:transparent;color:var(--ink)}
+button{background:var(--pri);color:#fff;border:0;font-weight:700;cursor:pointer}button.g{background:#1fa35b}button.y{background:#f2b705;color:#222}button.d{background:#d93a3a}
+.r{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:6px 0}[hidden]{display:none!important}
+.tw{overflow-x:auto}table{border-collapse:collapse;width:100%;font-size:14px}td,th{padding:6px 8px;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap}
+.on{color:#1fa35b;font-weight:700}.off{opacity:.6}
+</style></head><body>
+<div class="card" id="lg" style="max-width:380px"><h2>Teacher Dashboard</h2><p>Gradient Adventure</p>
+<div class="r"><input id="em" type="email" placeholder="Email guru" style="flex:1"></div><div class="r"><input id="pw" type="password" placeholder="Password" style="flex:1"></div>
+<div class="r"><button id="li">Masuk</button><button id="fp" class="y">Lupa password</button></div></div>
+<div id="mn" hidden>
+<div class="card"><div class="r"><b>Kelas:</b><select id="sel"></select><button id="lo" class="d" style="margin-left:auto">Keluar</button></div>
+<div class="r"><input id="nc" placeholder="Kode baru, mis. 9A-2026"><input id="nn" placeholder="Nama kelas"><button id="mk" class="g">+ Buat kelas</button></div></div>
+<div class="card"><div class="r"><h3 style="margin:0">Kode permainan: <span id="code">-</span></h3><span>Status: <b id="st">-</b></span></div>
+<div class="r"><button class="g" data-st="running">START / RESUME</button><button class="y" data-st="paused">PAUSE</button><button class="d" data-st="stopped">STOP</button><button data-st="restart">RESTART</button><label><input type="checkbox" id="hon" checked> Hint aktif</label></div>
+<div class="r"><input id="bt" placeholder="Pesan untuk seluruh siswa" style="flex:1;min-width:200px"><button id="bc">Kirim pengumuman</button></div></div>
+<div class="card"><div class="r"><b id="sum"></b><button id="csv" class="g" style="margin-left:auto">Unduh Excel (CSV)</button><button id="pdf">Cetak / PDF</button></div>
+<div class="tw"><table><thead><tr><th>Nama</th><th>Status</th><th>Lokasi</th><th>Progres</th><th>Learning Score</th><th>TP 1</th><th>Benar</th><th>Salah</th><th>Bantuan</th><th>XP</th><th>Waktu (dtk)</th></tr></thead><tbody id="tb"></tbody></table></div></div>
+</div>
+<script type="module">
+import {firebaseConfig as C} from './firebase-config.js';
+const V='https://www.gstatic.com/firebasejs/10.12.2/';
+const {initializeApp}=await import(V+'firebase-app.js');
+const {getAuth,signInWithEmailAndPassword,onAuthStateChanged,signOut,sendPasswordResetEmail}=await import(V+'firebase-auth.js');
+const {getFirestore,collection,query,where,getDocs,doc,setDoc,updateDoc,onSnapshot,deleteDoc}=await import(V+'firebase-firestore.js');
+const $=id=>document.getElementById(id),esc=s=>String(s).replace(/[&<>"']/g,c=>'&#'+c.charCodeAt(0)+';');
+const app=initializeApp(C),auth=getAuth(app),db=getFirestore(app);let code,u1,u2,P=[];
+$('li').onclick=async()=>{try{await signInWithEmailAndPassword(auth,$('em').value.trim(),$('pw').value)}catch(e){alert('Login gagal: '+e.code)}};
+$('fp').onclick=()=>$('em').value?sendPasswordResetEmail(auth,$('em').value.trim()).then(()=>alert('Tautan reset dikirim ke email.')).catch(e=>alert(e.code)):alert('Isi email dulu.');
+$('lo').onclick=()=>signOut(auth);
+onAuthStateChanged(auth,u=>{const ok=u&&!u.isAnonymous;$('lg').hidden=ok;$('mn').hidden=!ok;if(ok)load()});
+async function load(){const s=await getDocs(query(collection(db,'classes'),where('teacherUid','==',auth.currentUser.uid)));$('sel').innerHTML=s.docs.map(d=>`<option value="${esc(d.id)}">${esc(d.data().name||'')} (${esc(d.id)})</option>`).join('');if(s.size)watch($('sel').value)}
+$('sel').onchange=()=>watch($('sel').value);
+$('mk').onclick=async()=>{const c=$('nc').value.trim().toUpperCase().replace(/[^A-Z0-9-]/g,'');if(c.length<3)return alert('Kode minimal 3 karakter (huruf, angka, tanda -).');
+ try{await setDoc(doc(db,'classes',c),{teacherUid:auth.currentUser.uid,name:$('nn').value.trim()||c,status:'waiting',hintsOn:true,created:Date.now()});await load();$('sel').value=c;watch(c)}catch(e){alert('Gagal membuat kelas (kode mungkin sudah dipakai): '+e.code)}};
+function watch(c){code=c;u1&&u1();u2&&u2();
+ u1=onSnapshot(doc(db,'classes',c),s=>{const d=s.data()||{};$('st').textContent={waiting:'Menunggu',running:'Berjalan',paused:'Dijeda',stopped:'Dihentikan'}[d.status]||'-';$('code').textContent=c;$('hon').checked=d.hintsOn!==false});
+ u2=onSnapshot(collection(db,'classes',c,'players'),s=>{P=s.docs.map(d=>d.data());render()})}
+document.querySelectorAll('[data-st]').forEach(b=>b.onclick=async()=>{if(!code)return;const st=b.dataset.st,cr=doc(db,'classes',code);
+ if(st=='restart'){if(!confirm('Hapus semua progres siswa di kelas ini dan mulai ulang?'))return;const s=await getDocs(collection(db,'classes',code,'players'));await Promise.all(s.docs.map(d=>deleteDoc(d.ref)));await updateDoc(cr,{status:'waiting'})}else await updateDoc(cr,{status:st})});
+$('hon').onchange=()=>code&&updateDoc(doc(db,'classes',code),{hintsOn:$('hon').checked});
+$('bc').onclick=()=>{const t=$('bt').value.trim();if(code&&t){updateDoc(doc(db,'classes',code),{announce:{text:t,ts:Date.now()}});$('bt').value=''}};
+const pct=(a,b)=>b?Math.round(a/b*100)+'%':'-';
+const rows=()=>P.map(p=>({n:p.name,on:Date.now()-p.last<45000,loc:p.done?'Selesai':'Graph Mountain Lv '+Math.min(p.lv+1,6),pr:Math.round(p.lv/6*100)+'%',ls:pct(p.ok,p.ok+p.bad),tp1:pct(p.tp1ok,p.tp1ok+p.tp1bad),ok:p.ok,bad:p.bad,h:p.hints,xp:p.xp,w:p.done?Math.round(p.ms/1000):''})).sort((a,b)=>a.n.localeCompare(b.n));
+function render(){const R=rows();$('sum').textContent=`Terdaftar: ${R.length} · Online: ${R.filter(r=>r.on).length}`;
+ $('tb').innerHTML=R.map(r=>`<tr class="${r.on?'':'off'}"><td>${esc(r.n)}</td><td class="${r.on?'on':''}">${r.on?'Online':'Offline'}</td><td>${r.loc}</td><td>${r.pr}</td><td>${r.ls}</td><td>${r.tp1}</td><td>${r.ok}</td><td>${r.bad}</td><td>${r.h}</td><td>${r.xp}</td><td>${r.w}</td></tr>`).join('')}
+setInterval(()=>code&&render(),15000);
+$('csv').onclick=()=>{const R=rows(),h=['Nama','Status','Lokasi','Progres','Learning Score','TP1','Benar','Salah','Bantuan','XP','Waktu (detik)'];
+ const q=v=>{v=String(v);if(/^[=+\-@]/.test(v))v="'"+v;return'"'+v.replace(/"/g,'""')+'"'};
+ const t='\ufeff'+[h,...R.map(r=>[r.n,r.on?'Online':'Offline',r.loc,r.pr,r.ls,r.tp1,r.ok,r.bad,r.h,r.xp,r.w])].map(a=>a.map(q).join(',')).join('\r\n');
+ const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([t],{type:'text/csv'}));a.download='laporan-'+code+'.csv';a.click()};
+$('pdf').onclick=()=>print();
+</script></body></html>
