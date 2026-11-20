@@ -55,10 +55,13 @@ label{display:block;font-size:14px;font-weight:600}
 
 <div class="ov" id="q2" hidden><div class="card">
 <div class="row"><b id="q2t"></b><button id="x2" class="s" aria-label="Tutup">✕</button></div>
-<p style="font-size:14px;margin:6px 0">Tentukan gradien garis yang melalui dua titik berikut.</p>
+<p style="font-size:14px;margin:6px 0">Tentukan gradien garis yang melalui dua titik berikut, langkah demi langkah.</p>
 <div class="pt" id="pa"></div><div class="pt" id="pb"></div>
+<p style="font-size:13px;margin:4px 0">Titik A dan B boleh ditukar, asal urutannya konsisten di y dan x.</p>
+<div id="stg2" style="font-size:14px;font-weight:700;margin:6px 0"></div>
+<div id="prog2" style="min-height:18px;font-size:14px;margin:2px 0"></div>
 <div id="hint2" style="min-height:20px;font-size:14px;margin:6px 0"></div>
-<label>Gradien garis AB (pecahan atau desimal; jika gradien tidak ada, tulis: tidak terdefinisi)<input id="a4" autocomplete="off"></label>
+<label><span id="lb2"></span><input id="a4" autocomplete="off"></label>
 <div class="row"><button class="w" id="hb2">💡 Bantuan</button><button id="ok2">Periksa</button></div><div id="fb2" style="min-height:20px;font-size:14px;margin:6px 0"></div>
 </div></div>
 
@@ -170,7 +173,7 @@ $('hallc').innerHTML=`<h1 style="font-size:24px">🏆 Hall of Gradient Masters</
 if(d2)$('rs').onclick=async()=>{if(confirm('Mulai sebagai pemain baru di HP ini? Hasil pemain ini tetap tersimpan.')){await GA.reset();location.reload()}};else $('nx').onclick=enterCI}
 
 // ---------- Coordinate Island: soal 6 level ----------
-const UND=/^((tidak|tak)\s*terdefinisi|undefined|tt)$/i,QC=[];let hu2=false,h2=0;
+const UND=/^((tidak|tak)\s*terdefinisi|undefined|tt)$/i,QC=[];
 const nz2=(a,b)=>{let v=0;while(!v)v=r(a,b);return v},t=v=>v<0?`(−${-v})`:`${v}`,gcd=(a,b)=>b?gcd(b,a%b):Math.abs(a);
 function fr(dy,dx){const g=gcd(dy,dx)||1;let n=dy/g,d=dx/g;if(d<0){n=-n;d=-d}return d==1?''+n:n+'/'+d}
 function genCI(lv){for(let k=0;k<3000;k++){let x1,y1,dx,dy;const kk=r(1,3);
@@ -189,29 +192,59 @@ if(lv==4&&dy%dx==0)continue;
 return{x1,y1,x2,y2,dx,dy,und:dx==0,ans:dx?dy/dx:0}}
 return{x1:2,y1:3,x2:4,y2:7,dx:2,dy:4,und:false,ans:2}}
 const EX=[[1,2,3,8],[-2,1,1,4],[-6,-5,-3,-2],[1,6,3,2],[0,1,4,3],[3,1,3,5]];
-function hintsFor(q,lv){const [a,b,c,d]=EX[lv],dy=d-b,dx=c-a;return[
-'Rumus gradien dari dua titik: m = (y₂ − y₁) ÷ (x₂ − x₁).',
-`Tentukan nilainya dulu: x₁ = ${q.x1}, y₁ = ${q.y1}, x₂ = ${q.x2}, y₂ = ${q.y2}.`,
-`Langkah pengurangan: selisih y = y₂ − y₁ = ${t(q.y2)} − ${t(q.y1)}, dan selisih x = x₂ − x₁ = ${t(q.x2)} − ${t(q.x1)}. Hitung keduanya, lalu bagi selisih y dengan selisih x.${lv==5?' Ingat: pembagian dengan nol tidak terdefinisi.':''}`,
-`Latihan sejenis: A(${a}, ${b}) dan B(${c}, ${d}). m = (${t(d)} − ${t(b)}) ÷ (${t(c)} − ${t(a)}) = ${dy} ÷ ${dx} = ${dx?fr(dy,dx):'tidak terdefinisi (pembagi 0)'}.`]}
-function openQ2(){const i=S.lv2;if(!QC[i])QC[i]=genCI(i);const q=QC[i];$('q2t').textContent=`Coordinate Island · Level ${i+1}/6`;
+const FAC=[1,.7,.4],BASE=[80,80,90],STN=['Tahap 1 · Selisih y','Tahap 2 · Selisih x','Tahap 3 · Gradien'],NM=['y₂','y₁','Selisih y','x₂','x₁','Selisih x'],KY=['y2','y1','dy','x2','x1','dx','m'];
+const newSt=()=>({stg:0,fld:0,wr:[0,0,0],ord:null,v:[],raw:[],pts:[0,0,0],lock:false,hu:false,hh:0});
+function lb2(s){if(s.stg==2)return'Gradien m = selisih y ÷ selisih x (bilangan bulat, pecahan, atau desimal; jika gradien tidak ada, tulis: tidak terdefinisi)';
+const a=s.stg==0?'y':'x',n=s.stg==0?'ordinat':'absis';return['Masukkan '+a+'₂ ('+n+' titik kedua)','Masukkan '+a+'₁ ('+n+' titik pertama)','Hitung selisih '+a+' = '+a+'₂ − '+a+'₁'][s.fld]}
+function hints2(q,lv,stg){const [a,b,c,d]=EX[lv],dy=d-b,dx=c-a,P=`A(${a}, ${b}) dan B(${c}, ${d})`;
+if(stg==0)return['Ordinat adalah nilai y. Ambil y₂ dan y₁ dari titik A atau B, tetapi urutan titiknya harus sama dengan di tahap x.',`Latihan sejenis: ${P}. y₂ = ${d}, y₁ = ${b}, selisih y = ${t(d)} − ${t(b)} = ${dy}.`];
+if(stg==1)return['Absis adalah nilai x. Pakai urutan titik yang sama dengan di tahap y.',`Latihan sejenis: ${P}. x₂ = ${c}, x₁ = ${a}, selisih x = ${t(c)} − ${t(a)} = ${dx}.`];
+return['Rumus gradien: m = selisih y ÷ selisih x.'+(lv==5?' Ingat: pembagian dengan nol tidak terdefinisi.':''),`Latihan sejenis: ${P}. m = ${dy} ÷ ${dx} = ${dx?fr(dy,dx):'tidak terdefinisi (pembagi 0)'}.`]}
+function chk2(q,s,raw){const v=num(raw);
+if(s.stg==2){if(q.und)return UND.test(raw)?{ok:1}:v!==null?{m:'Perhatikan selisih x (x₂ − x₁). Apa yang terjadi jika pembaginya nol?'}:{skip:'Jika pembaginya nol, gradiennya tidak terdefinisi. Tulis jawabanmu dengan benar.'};
+if(UND.test(raw))return{m:'Selisih x tidak sama dengan nol, jadi gradiennya ada. Hitung kembali.'};
+if(v===null)return{skip:'Isi dengan bilangan bulat, pecahan (misalnya 4/2), atau desimal.'};
+if(Math.abs(v-q.ans)<1e-9)return{ok:1};
+if(q.ans!==0&&Math.abs(v+q.ans)<1e-9)return{m:'Hampir! Nilainya benar tetapi tandanya terbalik. Periksa tanda selisih y dan selisih x.'};
+if(q.dy!==0&&Math.abs(v-q.dx/q.dy)<1e-9)return{m:'Gradien = selisih y ÷ selisih x, bukan sebaliknya.'};
+return{m:'Belum tepat. Bagi selisih y dengan selisih x yang sudah kamu hitung.'}}
+if(v===null||!Number.isInteger(v))return{skip:'Isi dengan bilangan bulat.'};
+const a=s.stg==0?'y':'x',P=s.stg==0?[q.y1,q.y2]:[q.x1,q.x2];
+if(s.fld==0){if(s.stg==0){if(v===P[1])return{ok:1,ord:'AB'};if(v===P[0])return{ok:1,ord:'BA'};return{m:a+'₂ harus salah satu ordinat dari titik A atau B.'}}
+const w=s.ord=='BA'?P[0]:P[1];if(v===w)return{ok:1};
+if(v===(s.ord=='BA'?P[1]:P[0]))return{m:'Urutan titik harus konsisten dengan tahap y: titik '+(s.ord=='BA'?'A':'B')+' dipakai sebagai titik kedua.'};
+return{m:a+'₂ harus berasal dari titik '+(s.ord=='BA'?'A':'B')+'.'}}
+if(s.fld==1){const w=s.v[s.stg*3]===P[1]&&P[0]!==P[1]?P[0]:s.v[s.stg*3]===P[0]&&P[0]!==P[1]?P[1]:P[0];if(v===w)return{ok:1};return{m:a+'₁ diambil dari titik yang satunya lagi (yang belum dipakai sebagai '+a+'₂).'}}
+const w=s.v[s.stg*3]-s.v[s.stg*3+1];if(v===w)return{ok:1};
+if(w!==0&&v===-w)return{m:'Hampir! Selisih = '+a+'₂ − '+a+'₁. Periksa tandanya.'};
+return{m:'Belum tepat. Hitung '+a+'₂ − '+a+'₁ dari dua nilai yang sudah kamu isi.'}}
+function rend2(){const q=QC[S.lv2],s=q.st;$('stg2').textContent=`${STN[s.stg]} · Sisa percobaan: ${3-s.wr[s.stg]}`;
+$('lb2').textContent=lb2(s);$('prog2').textContent=s.v.map((v,k)=>`${NM[k]} = ${v}`).join('  ·  ');
+$('hint2').textContent=s.hh?hints2(q,S.lv2,s.stg)[s.hh-1]:'';$('a4').value='';$('a4').disabled=s.lock;$('ok2').disabled=s.lock}
+function openQ2(){const i=S.lv2;if(!QC[i]){QC[i]=genCI(i);QC[i].st=newSt()}const q=QC[i];$('q2t').textContent=`Coordinate Island · Level ${i+1}/6`;
 $('pa').textContent=`Titik A (x₁, y₁) = (${q.x1}, ${q.y1})`;$('pb').textContent=`Titik B (x₂, y₂) = (${q.x2}, ${q.y2})`;
-$('a4').value='';$('fb2').textContent='';$('hint2').textContent='';hu2=false;h2=0;$('hb2').hidden=!GA.hintsOn;$('ok2').disabled=false;$('q2').hidden=false}
+$('fb2').textContent='';$('hb2').hidden=!GA.hintsOn;rend2();$('q2').hidden=false}
 $('x2').onclick=()=>$('q2').hidden=true;
-$('hb2').onclick=()=>{hu2=true;S.hints++;GA.hint();h2=Math.min(4,h2+1);$('hint2').textContent=hintsFor(QC[S.lv2],S.lv2)[h2-1]};
+$('hb2').onclick=()=>{const q=QC[S.lv2];if(!q||q.st.lock)return;const s=q.st;s.hu=true;S.hints++;GA.hint();s.hh=Math.min(2,s.hh+1);$('hint2').textContent=hints2(q,S.lv2,s.stg)[s.hh-1]};
+$('a4').onkeydown=e=>{if(e.key==='Enter')$('ok2').click()};
 function enterCI(){S.area='ci';$('hall').hidden=true;p.x=OX;p.z=2-S.lv2*24;p.y=0;p.vy=0;for(let i=0;i<S.lv2;i++)openBridge(i,true);hud();
 say('Coordinate Explorer: “Selamat datang di Coordinate Island! Buka setiap jembatan dengan menghitung gradien dari dua titik.”')}
-$('ok2').onclick=()=>{const i=S.lv2,q=QC[i],raw=$('a4').value.trim(),v=num(raw),fb=$('fb2');
+$('ok2').onclick=()=>{const i=S.lv2,q=QC[i],fb=$('fb2');if(!q||q.st.lock)return;const s=q.st,raw=$('a4').value.trim();
 if(GA.status!=='running'){fb.style.color='var(--bad)';fb.textContent='Permainan sedang tidak aktif.';return}
 if(!raw){fb.style.color='var(--bad)';fb.textContent='Isi jawabanmu dulu.';return}
-const ok=q.und?UND.test(raw):(v!==null&&Math.abs(v-q.ans)<1e-9);GA.log({tp:2,lv:i,ok,hint:hu2,a:[raw]});
-if(ok){$('ok2').disabled=true;S.ok++;S.xp+=250;S.lv2++;openBridge(i,false);hud();fb.style.color='var(--ok)';
-fb.textContent=hu2?'Bagus! Kamu berhasil setelah menggunakan petunjuk. Cobalah latihan berikutnya tanpa bantuan. +250 XP':'Hebat! Kamu berhasil menentukan gradien dengan tepat. Jembatan berhasil dibuka! +250 XP';
-setTimeout(()=>{$('q2').hidden=true;S.lv2>=6?win():say('Jembatan terbuka! Seberangi jembatan menuju pulau berikutnya.')},1500)}
-else{S.bad++;let m='Belum tepat. Hitung kembali selisih y dan selisih x, lalu bagi selisih y dengan selisih x.';
-if(q.und){if(v!==null)m='Perhatikan selisih x (x₂ − x₁). Apa yang terjadi jika pembaginya nol?'}
-else if(UND.test(raw))m='Selisih x tidak sama dengan nol, jadi gradiennya ada. Hitung kembali.';
-else if(v!==null&&q.ans!==0&&Math.abs(v+q.ans)<1e-9)m='Hampir! Nilainya benar tetapi tandanya terbalik. Periksa urutan pengurangan: y₂ − y₁ dan x₂ − x₁.';
-else if(v!==null&&q.dy!==0&&Math.abs(v-q.dx/q.dy)<1e-9)m='Gradien = selisih y ÷ selisih x, bukan sebaliknya.';
-fb.style.color='var(--bad)';fb.textContent=m}};
+const R=chk2(q,s,raw),sum=()=>s.raw.map((x,k)=>KY[k]+'='+x).join(';');
+if(R.skip){fb.style.color='var(--bad)';fb.textContent=R.skip;return}
+if(R.ok){s.raw.push(raw);
+ if(s.stg==2){s.pts[2]=Math.round(BASE[2]*FAC[s.wr[2]]);const xp=s.pts[0]+s.pts[1]+s.pts[2];
+  $('ok2').disabled=true;$('a4').disabled=true;S.ok++;S.xp+=xp;S.lv2++;openBridge(i,false);hud();GA.log({tp:2,lv:i,ok:true,hint:s.hu,a:[sum()],xp});
+  fb.style.color='var(--ok)';fb.textContent=(s.hu?'Bagus! Kamu berhasil setelah menggunakan petunjuk. ':'Hebat! Kamu berhasil menentukan gradien dengan tepat. ')+'Jembatan berhasil dibuka! +'+xp+' XP';
+  setTimeout(()=>{$('q2').hidden=true;S.lv2>=6?win():say('Jembatan terbuka! Seberangi jembatan menuju pulau berikutnya.')},1500);return}
+ if(s.stg==0&&s.fld==0)s.ord=R.ord;
+ if(s.fld<2){s.v.push(+raw.replace(/[−–]/g,'-'));s.fld++;rend2();fb.style.color='var(--ok)';fb.textContent='Benar! Lanjutkan.'}
+ else{s.v.push(+raw.replace(/[−–]/g,'-'));s.pts[s.stg]=Math.round(BASE[s.stg]*FAC[s.wr[s.stg]]);const done=s.stg;s.stg++;s.fld=0;s.hh=0;rend2();fb.style.color='var(--ok)';fb.textContent=done==0?'Selisih y benar! Sekarang hitung selisih x dengan urutan titik yang sama.':'Selisih x benar! Sekarang tentukan gradiennya.'}
+ return}
+s.wr[s.stg]++;fb.style.color='var(--bad)';
+if(s.wr[s.stg]>=3){s.lock=true;S.bad++;GA.log({tp:2,lv:i,ok:false,hint:s.hu,a:[sum()||raw]});QC[i]=null;$('a4').disabled=true;$('ok2').disabled=true;
+ fb.textContent='Kesempatan di tahap ini habis, jembatan tetap tertutup. Tutup papan ini, pelajari lagi, lalu coba soal baru di papan yang sama.';$('stg2').textContent=STN[s.stg]+' · Sisa percobaan: 0';return}
+$('stg2').textContent=`${STN[s.stg]} · Sisa percobaan: ${3-s.wr[s.stg]}`;fb.textContent=R.m+' Sisa percobaan: '+(3-s.wr[s.stg])+'.'};
 </script><script type="module" src="firebase-game.js"></script></body></html>
