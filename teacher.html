@@ -20,7 +20,7 @@ button{background:var(--pri);color:#fff;border:0;font-weight:700;cursor:pointer}
 <div class="r"><button class="g" data-st="running">START / RESUME</button><button class="y" data-st="paused">PAUSE</button><button class="d" data-st="stopped">STOP</button><button data-st="restart">RESTART</button><label><input type="checkbox" id="hon" checked> Hint aktif</label></div>
 <div class="r"><input id="bt" placeholder="Pesan untuk seluruh siswa" style="flex:1;min-width:200px"><button id="bc">Kirim pengumuman</button></div></div>
 <div class="card"><div class="r"><b id="sum"></b><button id="csv" class="g" style="margin-left:auto">Unduh Excel (CSV)</button><button id="pdf">Cetak / PDF</button></div>
-<div class="tw"><table><thead><tr><th>Nama</th><th>Status</th><th>Lokasi</th><th>Progres</th><th>Learning Score</th><th>TP 1</th><th>TP 2</th><th>Benar</th><th>Salah</th><th>Bantuan</th><th>XP</th><th>Waktu (dtk)</th></tr></thead><tbody id="tb"></tbody></table></div></div>
+<div class="tw"><table><thead><tr><th>Nama</th><th>Status</th><th>Lokasi</th><th>Progres</th><th>Learning Score</th><th>TP 1</th><th>TP 2</th><th>TP 3</th><th>Benar</th><th>Salah</th><th>Bantuan</th><th>XP</th><th>Waktu (dtk)</th></tr></thead><tbody id="tb"></tbody></table></div></div>
 </div>
 <script type="module">
 import {firebaseConfig as C} from './firebase-config.js';
@@ -46,13 +46,13 @@ document.querySelectorAll('[data-st]').forEach(b=>b.onclick=async()=>{if(!code)r
 $('hon').onchange=()=>code&&updateDoc(doc(db,'classes',code),{hintsOn:$('hon').checked});
 $('bc').onclick=()=>{const t=$('bt').value.trim();if(code&&t){updateDoc(doc(db,'classes',code),{announce:{text:t,ts:Date.now()}});$('bt').value=''}};
 const pct=(a,b)=>b?Math.round(a/b*100)+'%':'-';
-const rows=()=>P.map(p=>{const l1=Math.min(p.lv||0,6),l2=Math.min(p.lv2||0,6),d1=p.done||l1>=6;return{n:p.name,on:Date.now()-p.last<45000,loc:p.done2||l2>=6?'Selesai':d1?'Coordinate Island Lv '+(l2+1):'Graph Mountain Lv '+Math.min(l1+1,6),pr:Math.round((l1+l2)/12*100)+'%',ls:pct(p.ok,p.ok+p.bad),tp1:pct(p.tp1ok,p.tp1ok+p.tp1bad),tp2:pct(p.tp2ok||0,(p.tp2ok||0)+(p.tp2bad||0)),ok:p.ok,bad:p.bad,h:p.hints,xp:p.xp,w:p.done2?Math.round(p.ms2/1000):p.done?Math.round(p.ms/1000):''}}).sort((a,b)=>a.n.localeCompare(b.n));
+const rows=()=>P.map(p=>{const l1=Math.min(p.lv||0,6),l2=Math.min(p.lv2||0,6),l3=Math.min(p.lv3||0,6),d1=p.done||l1>=6,d2=p.done2||l2>=6,d3=p.done3||l3>=6;return{n:p.name,on:Date.now()-p.last<45000,loc:d3?'Selesai':d2?'Equation City Lv '+(l3+1):d1?'Coordinate Island Lv '+(l2+1):'Graph Mountain Lv '+Math.min(l1+1,6),pr:Math.round((l1+l2+l3)/18*100)+'%',ls:pct(p.ok,p.ok+p.bad),tp1:pct(p.tp1ok,p.tp1ok+p.tp1bad),tp2:pct(p.tp2ok||0,(p.tp2ok||0)+(p.tp2bad||0)),tp3:pct(p.tp3ok||0,(p.tp3ok||0)+(p.tp3bad||0)),ok:p.ok,bad:p.bad,h:p.hints,xp:p.xp,w:p.done3?Math.round(p.ms3/1000):p.done2?Math.round(p.ms2/1000):p.done?Math.round(p.ms/1000):''}}).sort((a,b)=>a.n.localeCompare(b.n));
 function render(){const R=rows();$('sum').textContent=`Terdaftar: ${R.length} · Online: ${R.filter(r=>r.on).length}`;
- $('tb').innerHTML=R.map(r=>`<tr class="${r.on?'':'off'}"><td>${esc(r.n)}</td><td class="${r.on?'on':''}">${r.on?'Online':'Offline'}</td><td>${r.loc}</td><td>${r.pr}</td><td>${r.ls}</td><td>${r.tp1}</td><td>${r.tp2}</td><td>${r.ok}</td><td>${r.bad}</td><td>${r.h}</td><td>${r.xp}</td><td>${r.w}</td></tr>`).join('')}
+ $('tb').innerHTML=R.map(r=>`<tr class="${r.on?'':'off'}"><td>${esc(r.n)}</td><td class="${r.on?'on':''}">${r.on?'Online':'Offline'}</td><td>${r.loc}</td><td>${r.pr}</td><td>${r.ls}</td><td>${r.tp1}</td><td>${r.tp2}</td><td>${r.tp3}</td><td>${r.ok}</td><td>${r.bad}</td><td>${r.h}</td><td>${r.xp}</td><td>${r.w}</td></tr>`).join('')}
 setInterval(()=>code&&render(),15000);
-$('csv').onclick=()=>{const R=rows(),h=['Nama','Status','Lokasi','Progres','Learning Score','TP1','TP2','Benar','Salah','Bantuan','XP','Waktu (detik)'];
+$('csv').onclick=()=>{const R=rows(),h=['Nama','Status','Lokasi','Progres','Learning Score','TP1','TP2','TP3','Benar','Salah','Bantuan','XP','Waktu (detik)'];
  const q=v=>{v=String(v);if(/^[=+\-@]/.test(v))v="'"+v;return'"'+v.replace(/"/g,'""')+'"'};
- const t='\ufeff'+[h,...R.map(r=>[r.n,r.on?'Online':'Offline',r.loc,r.pr,r.ls,r.tp1,r.tp2,r.ok,r.bad,r.h,r.xp,r.w])].map(a=>a.map(q).join(',')).join('\r\n');
+ const t='\ufeff'+[h,...R.map(r=>[r.n,r.on?'Online':'Offline',r.loc,r.pr,r.ls,r.tp1,r.tp2,r.tp3,r.ok,r.bad,r.h,r.xp,r.w])].map(a=>a.map(q).join(',')).join('\r\n');
  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([t],{type:'text/csv'}));a.download='laporan-'+code+'.csv';a.click()};
 $('pdf').onclick=()=>print();
 </script></body></html>
